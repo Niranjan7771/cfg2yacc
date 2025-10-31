@@ -29,7 +29,3 @@ Tests:
 ```bash
 bash tests/run_tests.sh
 ```
-
-
-# cfg2yacc
-# cfg2yacc
