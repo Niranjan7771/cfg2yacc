@@ -1,0 +1,17 @@
+# Build artifacts
+build/
+*.o
+cfg2yacc
+
+# Generated outputs
+out.y
+out.l
+*.yy.c
+*.tab.c
+*.tab.h
+
+# OS/editor
+.DS_Store
+*.swp
+*.swo
+*.log

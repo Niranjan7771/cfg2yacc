@@ -1,0 +1,9 @@
+list ::= '(' items? ')' ;
+items ::= ID (',' ID)* ;
+repeat ::= ID+ ;
+maybe ::= ID? ;
+
+list ::= item (',' item)* ;
+item ::= ID ('[' NUMBER ']')? ;
+opt ::= ('+' | '-')? NUMBER ;
+rep ::= '(' ID ID ')'+ ;
