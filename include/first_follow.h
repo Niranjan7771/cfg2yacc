@@ -10,6 +10,7 @@ typedef struct {
 } Set;
 
 void compute_first_follow(Grammar *g);
+void compute_first_follow_summary(Grammar *g);
 
 #endif
 

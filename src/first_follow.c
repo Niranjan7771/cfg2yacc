@@ -303,3 +303,49 @@ void compute_first_follow(Grammar *g) {
     free(follow_sets);
     free(nullable);
 }
+
+void compute_first_follow_summary(Grammar *g) {
+    if (!g) return;
+
+    size_t n = g->nonterm_len;
+    int *nullable = (int *)calloc(n, sizeof(int));
+    Set *first_sets = (Set *)calloc(n, sizeof(Set));
+    Set *follow_sets = (Set *)calloc(n, sizeof(Set));
+    if (!nullable || !first_sets || !follow_sets) {
+        fprintf(stderr, "cfg2yacc: out of memory (first/follow alloc)\n");
+        exit(EXIT_FAILURE);
+    }
+    for (size_t i = 0; i < n; ++i) {
+        set_init(&first_sets[i]);
+        set_init(&follow_sets[i]);
+    }
+
+    compute_nullable(g, nullable);
+    compute_first_sets(g, nullable, first_sets);
+    compute_follow_sets(g, nullable, first_sets, follow_sets);
+
+    fprintf(stdout, "FIRST/FOLLOW summary (counts only):\n");
+    size_t total_first = 0, total_follow = 0, nullable_count = 0;
+    for (size_t i = 0; i < n; ++i) {
+        total_first += first_sets[i].len;
+        total_follow += follow_sets[i].len;
+        if (nullable[i]) nullable_count++;
+    }
+    fprintf(stdout, "  nonterminals: %zu\n", n);
+    fprintf(stdout, "  nullable: %zu\n", nullable_count);
+    fprintf(stdout, "  total FIRST entries: %zu\n", total_first);
+    fprintf(stdout, "  total FOLLOW entries: %zu\n", total_follow);
+    for (size_t i = 0; i < n; ++i) {
+        fprintf(stdout, "  %s -> FIRST:%zu, FOLLOW:%zu%s\n",
+                g->nonterms[i], first_sets[i].len, follow_sets[i].len,
+                nullable[i] ? ", NULLABLE" : "");
+    }
+
+    for (size_t i = 0; i < n; ++i) {
+        set_free(&first_sets[i]);
+        set_free(&follow_sets[i]);
+    }
+    free(first_sets);
+    free(follow_sets);
+    free(nullable);
+}
