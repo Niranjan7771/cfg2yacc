@@ -9,6 +9,7 @@ out.l
 *.yy.c
 *.tab.c
 *.tab.h
+/logs/
 
 # OS/editor
 .DS_Store
