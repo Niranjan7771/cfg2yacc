@@ -17,6 +17,7 @@ int main(int argc, char **argv) {
     const char *out_l = NULL;
     int no_ff = 0;
     int ff_summary = 0;
+    const char *ff_out = NULL;
 
     for (int i = 1; i < argc; ++i) {
         if ((strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--input") == 0) && i + 1 < argc) {
@@ -29,6 +30,8 @@ int main(int argc, char **argv) {
             no_ff = 1;
         } else if (strcmp(argv[i], "--ff-summary") == 0) {
             ff_summary = 1;
+        } else if (strcmp(argv[i], "--ff-out") == 0 && i + 1 < argc) {
+            ff_out = argv[++i];
         } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
             usage(argv[0]);
             return 0;
@@ -59,6 +62,12 @@ int main(int argc, char **argv) {
     if (!no_ff) {
         fprintf(stderr, "[cfg2yacc] computing FIRST/FOLLOW...\n");
         fflush(stderr);
+        if (ff_out) {
+            FILE *fp = freopen(ff_out, "w", stdout);
+            if (!fp) {
+                fprintf(stderr, "[cfg2yacc] error: cannot open FF output file %s\n", ff_out);
+            }
+        }
         if (ff_summary) {
             compute_first_follow_summary(g);
         } else {

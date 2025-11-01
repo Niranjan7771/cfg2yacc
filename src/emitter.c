@@ -74,17 +74,12 @@ static int is_all_caps(const char *sym) {
 }
 
 static void write_ast_stub(const char *ast_h, const char *ast_c) {
-    if (ast_h) {
-        FILE *fh = fopen(ast_h, "wb");
-        if (fh) {
-            fputs("#ifndef CFG2YACC_AST_IMPL\n#define CFG2YACC_AST_IMPL\n\n#include \"ast.h\"\n\nAST *ast_make(ASTKind kind) { (void)kind; return NULL; }\nvoid ast_free(AST *node) { (void)node; }\n\n#endif /* CFG2YACC_AST_IMPL */\n", fh);
-            fclose(fh);
-        }
-    }
+    // Only write to ast.c, not ast.h (which should already exist)
+    (void)ast_h;  // Unused parameter
     if (ast_c) {
         FILE *fc = fopen(ast_c, "wb");
         if (fc) {
-            fputs("#include \"ast.h\"\n\nAST *ast_make(ASTKind kind) { (void)kind; return NULL; }\nvoid ast_free(AST *node) { (void)node; }\n", fc);
+            fputs("#include \"ast.h\"\n#include <stddef.h>\n\nAST *ast_make(ASTKind kind) { (void)kind; return NULL; }\nvoid ast_free(AST *node) { (void)node; }\n", fc);
             fclose(fc);
         }
     }
@@ -97,11 +92,42 @@ static void write_flex_stub(const Grammar *g, const char *out_l) {
         perror("cfg2yacc: fopen lex");
         return;
     }
-    fputs("%{\n#include \"y.tab.h\"\n#include <stdlib.h>\n%}\n\n%option noyywrap\n\n", l);
+    fputs("%{\n#include \"y.tab.h\"\n#include <stdlib.h>\n%}\n\n%option noyywrap\n%option reentrant\n\n", l);
 
     for (size_t i = 0; i < g->term_len; ++i) {
         const char *tok = g->terms[i];
-        if (is_literal_token(tok) || is_all_caps(tok)) {
+        if (is_literal_token(tok)) {
+            // For literal tokens like '+', extract the character
+            size_t len = strlen(tok);
+            if (len >= 3 && tok[0] == '\'' && tok[len-1] == '\'') {
+                char c = tok[1];
+                char flex_pattern[4] = {0};
+                char return_char = c;
+                
+                // Handle escape sequences
+                if (c == '\\' && len >= 4) {
+                    char esc = tok[2];
+                    switch (esc) {
+                        case 'n': return_char = '\n'; flex_pattern[0] = '\\'; flex_pattern[1] = 'n'; break;
+                        case 't': return_char = '\t'; flex_pattern[0] = '\\'; flex_pattern[1] = 't'; break;
+                        case 'r': return_char = '\r'; flex_pattern[0] = '\\'; flex_pattern[1] = 'r'; break;
+                        case '\\': return_char = '\\'; flex_pattern[0] = '\\'; flex_pattern[1] = '\\'; break;
+                        default: return_char = esc; flex_pattern[0] = '\\'; flex_pattern[1] = esc; break;
+                    }
+                } else {
+                    // For special Flex characters, use character classes
+                    if (strchr("+*?|()[]{}$^.\\", c)) {
+                        // Use character class for special characters
+                        fprintf(l, "[%c]    return '%c';\n", c, c);
+                        continue;
+                    } else {
+                        flex_pattern[0] = c;
+                    }
+                }
+                fprintf(l, "%s    return '%c';\n", flex_pattern, return_char);
+            }
+        } else if (is_all_caps(tok)) {
+            // For ALL_CAPS tokens, use as-is (but need to define them as tokens first)
             fprintf(l, "%s    return %s;\n", tok, tok);
         }
     }
@@ -115,13 +141,13 @@ static void write_flex_stub(const Grammar *g, const char *out_l) {
     if (has_number) fputs("[0-9]+    return NUMBER;\n", l);
     if (has_ident) fputs("[A-Za-z_][A-Za-z0-9_]*    return IDENT;\n", l);
     fputs("[\\t\\r\\n ]+    ;\n", l);
-    fputs(".          return yytext[0];\n\n%%%%\n", l);
+    fputs(".          return yytext[0];\n\n%%\n", l);
     fclose(l);
 }
 
 static void emit_prologue(FILE *y) {
-    fputs("%{\n#include \"ast.h\"\n#include <stdio.h>\nextern int yylex(void);\nextern int yyparse(void);\nvoid yyerror(const char *msg);\n%}\n\n", y);
-    fputs("%define api.pure full\n%define parse.error verbose\n\n", y);
+    fputs("%{\n#include \"ast.h\"\n#include <stdio.h>\ntypedef void* YYSTYPE;\nextern int yylex(YYSTYPE *);\nextern int yyparse(void);\nvoid yyerror(const char *msg);\n%}\n\n", y);
+    fputs("%define api.pure full\n%define parse.error verbose\n%define api.value.type {void*}\n\n", y);
 }
 
 static void emit_tokens(FILE *y, const Grammar *g) {
@@ -152,7 +178,7 @@ static void emit_rules(FILE *y, const Grammar *g) {
         string_list_append_unique(&groups, g->prods[i].lhs);
     }
 
-    fputs("%%%%\n", y);
+    fputs("%%\n", y);
     for (size_t gi = 0; gi < groups.len; ++gi) {
         const char *lhs = groups.items[gi];
         fprintf(y, "%s:\n", lhs);
@@ -178,7 +204,7 @@ static void emit_rules(FILE *y, const Grammar *g) {
 }
 
 static void emit_epilogue(FILE *y) {
-    fputs("%%%%\n\n", y);
+    fputs("%%\n\n", y);
     fputs("void yyerror(const char *s) { fprintf(stderr, \"parse error: %s\\n\", s); }\n", y);
     fputs("int main(void) { return yyparse(); }\n", y);
 }

@@ -1,9 +1,17 @@
-#ifndef CFG2YACC_AST_IMPL
-#define CFG2YACC_AST_IMPL
+#ifndef CFG2YACC_AST_H
+#define CFG2YACC_AST_H
 
-#include "ast.h"
+typedef enum {
+    AST_UNKNOWN = 0
+} ASTKind;
 
-AST *ast_make(ASTKind kind) { (void)kind; return NULL; }
-void ast_free(AST *node) { (void)node; }
+typedef struct AST {
+    ASTKind kind;
+} AST;
 
-#endif /* CFG2YACC_AST_IMPL */
+AST *ast_make(ASTKind kind);
+void ast_free(AST *node);
+
+#endif /* CFG2YACC_AST_H */
+
+

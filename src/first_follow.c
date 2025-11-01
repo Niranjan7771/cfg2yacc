@@ -86,8 +86,15 @@ static int nonterm_index(const Grammar *g, const char *name) {
 
 static void compute_nullable(const Grammar *g, int *nullable) {
     int changed;
+    int iterations = 0;
+    const int max_iterations = 1000;  // Safety limit to prevent infinite loops
     do {
         changed = 0;
+        iterations++;
+        if (iterations > max_iterations) {
+            fprintf(stderr, "[first_follow] warning: NULLABLE computation exceeded %d iterations, stopping\n", max_iterations);
+            break;
+        }
         for (size_t i = 0; i < g->prod_len; ++i) {
             const Production *p = &g->prods[i];
             int lhs = nonterm_index(g, p->lhs);
@@ -114,8 +121,15 @@ static void compute_nullable(const Grammar *g, int *nullable) {
 
 static void compute_first_sets(const Grammar *g, const int *nullable, Set *first_sets) {
     int changed;
+    int iterations = 0;
+    const int max_iterations = 1000;  // Safety limit to prevent infinite loops
     do {
         changed = 0;
+        iterations++;
+        if (iterations > max_iterations) {
+            fprintf(stderr, "[first_follow] warning: FIRST set computation exceeded %d iterations, stopping\n", max_iterations);
+            break;
+        }
         for (size_t i = 0; i < g->prod_len; ++i) {
             const Production *p = &g->prods[i];
             int lhs = nonterm_index(g, p->lhs);
@@ -141,8 +155,15 @@ static void compute_follow_sets(const Grammar *g, const int *nullable, const Set
     if (start_idx >= 0) set_add(&follow_sets[start_idx], "$");
 
     int changed;
+    int iterations = 0;
+    const int max_iterations = 1000;  // Safety limit to prevent infinite loops
     do {
         changed = 0;
+        iterations++;
+        if (iterations > max_iterations) {
+            fprintf(stderr, "[first_follow] warning: FOLLOW set computation exceeded %d iterations, stopping\n", max_iterations);
+            break;
+        }
         for (size_t i = 0; i < g->prod_len; ++i) {
             const Production *p = &g->prods[i];
             int lhs = nonterm_index(g, p->lhs);
