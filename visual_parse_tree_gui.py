@@ -26,9 +26,16 @@ class ParseTreeNode:
         self.level = 0
         
     def add_child(self, child):
+        if child is None:
+            return
         child.parent = self
-        child.level = self.level + 1
+        child.update_level(self.level + 1)
         self.children.append(child)
+
+    def update_level(self, level: int):
+        self.level = level
+        for grandchild in self.children:
+            grandchild.update_level(level + 1)
         
     def get_subtree_width(self):
         if not self.children:
@@ -265,175 +272,86 @@ class VisualParseTreeGUI:
         """Build a visual tree from parse rules"""
         if not self.parse_rules:
             return None
-            
-        # Create a simple demonstration tree based on the input
-        expression = self.input_var.get().strip()
-        
-        # For demonstration, create trees for common patterns
-        if expression == "42":
-            return self.build_simple_tree()
-        elif expression == "1+2":
-            return self.build_addition_tree()
-        elif expression == "1+2*3":
-            return self.build_precedence_tree()
-        elif expression == "(1+2)*3":
-            return self.build_parentheses_tree()
-        else:
-            return self.build_generic_tree(expression)
-            
-    def build_simple_tree(self):
-        """Build tree for: 42"""
-        root = ParseTreeNode("expr")
-        term = ParseTreeNode("term")
-        factor = ParseTreeNode("factor")
-        number = ParseTreeNode("42", True)
-        
-        root.add_child(term)
-        term.add_child(factor)
-        factor.add_child(number)
-        
-        return root
-        
-    def build_addition_tree(self):
-        """Build tree for: 1+2"""
-        root = ParseTreeNode("expr")
-        
-        # Left operand
-        term1 = ParseTreeNode("term")
-        factor1 = ParseTreeNode("factor")
-        num1 = ParseTreeNode("1", True)
-        
-        term1.add_child(factor1)
-        factor1.add_child(num1)
-        
-        # Operator
-        plus = ParseTreeNode("+", True)
-        
-        # Right operand
-        term2 = ParseTreeNode("term")
-        factor2 = ParseTreeNode("factor")
-        num2 = ParseTreeNode("2", True)
-        
-        term2.add_child(factor2)
-        factor2.add_child(num2)
-        
-        # Assemble
-        root.add_child(term1)
-        root.add_child(plus)
-        root.add_child(term2)
-        
-        return root
-        
-    def build_precedence_tree(self):
-        """Build tree for: 1+2*3"""
-        root = ParseTreeNode("expr")
-        
-        # Left: 1
-        term1 = ParseTreeNode("term")
-        factor1 = ParseTreeNode("factor")
-        num1 = ParseTreeNode("1", True)
-        
-        term1.add_child(factor1)
-        factor1.add_child(num1)
-        
-        # Plus
-        plus = ParseTreeNode("+", True)
-        
-        # Right: 2*3 (higher precedence)
-        term2 = ParseTreeNode("term")
-        
-        factor2 = ParseTreeNode("factor")
-        num2 = ParseTreeNode("2", True)
-        factor2.add_child(num2)
-        
-        star = ParseTreeNode("*", True)
-        
-        factor3 = ParseTreeNode("factor")
-        num3 = ParseTreeNode("3", True)
-        factor3.add_child(num3)
-        
-        term2.add_child(factor2)
-        term2.add_child(star)
-        term2.add_child(factor3)
-        
-        root.add_child(term1)
-        root.add_child(plus)
-        root.add_child(term2)
-        
-        return root
-        
-    def build_parentheses_tree(self):
-        """Build tree for: (1+2)*3"""
-        root = ParseTreeNode("expr")
-        term = ParseTreeNode("term")
-        
-        # Left: (1+2)
-        factor1 = ParseTreeNode("factor")
-        lparen = ParseTreeNode("(", True)
-        
-        # Inner expression
-        inner_expr = ParseTreeNode("expr")
-        inner_term1 = ParseTreeNode("term")
-        inner_factor1 = ParseTreeNode("factor")
-        num1 = ParseTreeNode("1", True)
-        
-        inner_term1.add_child(inner_factor1)
-        inner_factor1.add_child(num1)
-        
-        plus = ParseTreeNode("+", True)
-        
-        inner_term2 = ParseTreeNode("term")
-        inner_factor2 = ParseTreeNode("factor")
-        num2 = ParseTreeNode("2", True)
-        
-        inner_term2.add_child(inner_factor2)
-        inner_factor2.add_child(num2)
-        
-        inner_expr.add_child(inner_term1)
-        inner_expr.add_child(plus)
-        inner_expr.add_child(inner_term2)
-        
-        rparen = ParseTreeNode(")", True)
-        
-        factor1.add_child(lparen)
-        factor1.add_child(inner_expr)
-        factor1.add_child(rparen)
-        
-        # Multiplication
-        star = ParseTreeNode("*", True)
-        
-        # Right: 3
-        factor2 = ParseTreeNode("factor")
-        num3 = ParseTreeNode("3", True)
-        factor2.add_child(num3)
-        
-        term.add_child(factor1)
-        term.add_child(star)
-        term.add_child(factor2)
-        
-        root.add_child(term)
-        
-        return root
-        
-    def build_generic_tree(self, expression):
-        """Build a generic tree for any expression"""
-        root = ParseTreeNode("expr")
-        
-        # Simple fallback - just show the expression as a terminal
-        if len(expression) <= 10:
-            term = ParseTreeNode("term")
-            factor = ParseTreeNode("factor")
-            terminal = ParseTreeNode(expression, True)
-            
-            root.add_child(term)
-            term.add_child(factor)
-            factor.add_child(terminal)
-        else:
-            # For long expressions, show truncated
-            terminal = ParseTreeNode(expression[:10] + "...", True)
-            root.add_child(terminal)
-            
-        return root
+
+        parsed_rules = []
+        nonterminals = set()
+
+        for rule_line in self.parse_rules:
+            parsed = self.parse_rule_line(rule_line)
+            if not parsed:
+                continue
+            lhs, rhs = parsed
+            parsed_rules.append((lhs, rhs, rule_line))
+            nonterminals.add(lhs)
+
+        if not parsed_rules:
+            return None
+
+        tree = self.build_tree_from_rules(parsed_rules, nonterminals)
+        if tree:
+            tree.update_level(0)
+        return tree
+
+    def parse_rule_line(self, rule_line: str) -> Optional[Tuple[str, List[str]]]:
+        """Split a rule line into lhs and rhs symbols"""
+        if "->" not in rule_line:
+            return None
+
+        lhs, rhs_str = rule_line.split("->", 1)
+        lhs = lhs.strip()
+        rhs_str = rhs_str.strip()
+
+        if not lhs:
+            return None
+
+        if rhs_str in {"ε", "/* empty */", ""}:
+            return lhs, []
+
+        rhs_symbols = []
+        for token in rhs_str.split():
+            token = token.strip()
+            if (not token or token == "ε" or "/*" in token or "*/" in token):
+                continue
+            rhs_symbols.append(token)
+
+        return lhs, rhs_symbols
+
+    def build_tree_from_rules(self, parsed_rules, nonterminals):
+        """Use shift-reduce style reconstruction to build the parse tree"""
+        stack: List[ParseTreeNode] = []
+
+        for lhs, rhs, rule_text in parsed_rules:
+            children: List[ParseTreeNode] = []
+
+            for symbol in reversed(rhs):
+                if symbol in nonterminals:
+                    child = stack.pop() if stack else ParseTreeNode(symbol)
+                    children.append(child)
+                else:
+                    terminal_node = self.create_terminal_node(symbol)
+                    if terminal_node:
+                        children.append(terminal_node)
+
+            children.reverse()
+
+            node = ParseTreeNode(lhs, is_terminal=False, rule=rule_text)
+            for child in children:
+                node.add_child(child)
+
+            stack.append(node)
+
+        return stack[-1] if stack else None
+
+    def create_terminal_node(self, symbol: str) -> Optional[ParseTreeNode]:
+        """Create a terminal node, normalising quotes if needed"""
+        if symbol in {"ε", "/*", "*/"}:
+            return None
+
+        label = symbol
+        if (label.startswith("'") and label.endswith("'")) or (label.startswith('"') and label.endswith('"')):
+            label = label[1:-1]
+
+        return ParseTreeNode(label, True, rule="")
         
     def calculate_layout(self, node, x=0, y=80):
         """Calculate node positions"""

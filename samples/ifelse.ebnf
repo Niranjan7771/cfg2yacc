@@ -1,7 +1,0 @@
-stmt ::= IF expr THEN stmt (ELSE stmt)? | other ;
-expr ::= ID ;
-other ::= ID ;
-
-stmt ::= IF expr THEN stmt (ELSE stmt)? ;
-stmt ::= ID '=' expr ';' ;
-expr ::= ID | NUMBER ;

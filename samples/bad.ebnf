@@ -1,5 +1,0 @@
-# missing ::= and semicolon
-expr term ( '+' term )*
-
-expr ::= term ( '+' | '-' term )*   # missing semicolon
-term ::= ; # empty lhs error

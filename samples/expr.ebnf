@@ -1,6 +1,0 @@
-# Expression grammar example
-expr ::= term ( ('+' | '-') term )* ;
-
-term ::= factor ( ('*' | '/') factor )* ;
-
-factor ::= NUMBER | '(' expr ')' ;

@@ -1,0 +1,17 @@
+# Simplified SQL SELECT grammar covering projections, filters, and ordering
+
+query           ::= SELECT select_list FROM IDENTIFIER where_clause? order_clause? ';' ;
+
+select_list     ::= '*' | column (',' column)* ;
+column          ::= IDENTIFIER | IDENTIFIER '.' IDENTIFIER ;
+
+where_clause    ::= WHERE condition ;
+condition       ::= disjunction ;
+disjunction     ::= conjunction (OR conjunction)* ;
+conjunction     ::= comparison (AND comparison)* ;
+comparison      ::= value comparator value ;
+comparator      ::= EQ | NEQ | LT | LEQ | GT | GEQ ;
+value           ::= NUMBER | STRING | IDENTIFIER | IDENTIFIER '.' IDENTIFIER ;
+
+order_clause    ::= ORDER BY order_term (',' order_term)* ;
+order_term      ::= IDENTIFIER (ASC | DESC)? ;

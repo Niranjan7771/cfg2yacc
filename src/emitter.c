@@ -73,6 +73,61 @@ static int is_all_caps(const char *sym) {
     return seen_alpha;
 }
 
+static const char *guess_operator_lexeme(const char *tok) {
+    if (!tok) return NULL;
+    if (strcmp(tok, "EQ") == 0 || strcmp(tok, "ASSIGN") == 0) return "=";
+    if (strcmp(tok, "NEQ") == 0 || strcmp(tok, "NE") == 0) return "<>";
+    if (strcmp(tok, "LEQ") == 0 || strcmp(tok, "LE") == 0) return "<=";
+    if (strcmp(tok, "GEQ") == 0 || strcmp(tok, "GE") == 0) return ">=";
+    if (strcmp(tok, "LT") == 0) return "<";
+    if (strcmp(tok, "GT") == 0) return ">";
+    if (strcmp(tok, "PLUS") == 0) return "+";
+    if (strcmp(tok, "MINUS") == 0) return "-";
+    if (strcmp(tok, "STAR") == 0 || strcmp(tok, "TIMES") == 0) return "*";
+    if (strcmp(tok, "SLASH") == 0 || strcmp(tok, "DIV") == 0) return "/";
+    if (strcmp(tok, "LPAREN") == 0) return "(";
+    if (strcmp(tok, "RPAREN") == 0) return ")";
+    if (strcmp(tok, "LBRACE") == 0) return "{";
+    if (strcmp(tok, "RBRACE") == 0) return "}";
+    if (strcmp(tok, "LBRACK") == 0) return "[";
+    if (strcmp(tok, "RBRACK") == 0) return "]";
+    if (strcmp(tok, "COMMA") == 0) return ",";
+    if (strcmp(tok, "SEMI") == 0 || strcmp(tok, "SEMICOLON") == 0) return ";";
+    if (strcmp(tok, "COLON") == 0) return ":";
+    if (strcmp(tok, "DOT") == 0 || strcmp(tok, "PERIOD") == 0) return ".";
+    return NULL;
+}
+
+static void flex_write_literal(FILE *l, const char *lexeme) {
+    fputc('"', l);
+    for (const char *p = lexeme; p && *p; ++p) {
+        switch (*p) {
+            case '\\':
+            case '"':
+            case '[':
+            case ']':
+            case '.':
+            case '*':
+            case '+':
+            case '?':
+            case '(': 
+            case ')':
+            case '{':
+            case '}':
+            case '^':
+            case '$':
+            case '|':
+                fputc('\\', l);
+                fputc(*p, l);
+                break;
+            default:
+                fputc(*p, l);
+                break;
+        }
+    }
+    fputc('"', l);
+}
+
 static void write_ast_stub(const char *ast_h, const char *ast_c) {
     // Only write to ast.c, not ast.h (which should already exist)
     (void)ast_h;  // Unused parameter
@@ -148,41 +203,46 @@ static void write_flex_stub(const Grammar *g, const char *out_l, const char *out
     
     // Generate patterns for common token types
     int has_number = 0;
-    int has_ident = 0;
+    int has_string = 0;
+    const char *ident_tok = NULL;
     for (size_t i = 0; i < g->term_len; ++i) {
-        if (strcmp(g->terms[i], "NUMBER") == 0) has_number = 1;
-        if (strcmp(g->terms[i], "IDENT") == 0 || strcmp(g->terms[i], "ID") == 0) has_ident = 1;
-    }
-    
-    if (has_number) fputs("[0-9]+     return NUMBER;\n", l);
-    if (has_ident) {
-        // Use ID if available, otherwise IDENT
-        int found_id = 0;
-        for (size_t j = 0; j < g->term_len; ++j) {
-            if (strcmp(g->terms[j], "ID") == 0) {
-                found_id = 1;
-                break;
-            }
-        }
-        if (found_id) {
-            fputs("[A-Za-z_][A-Za-z0-9_]*  return ID;\n", l);
-        } else {
-            fputs("[A-Za-z_][A-Za-z0-9_]*  return IDENT;\n", l);
+        const char *tok = g->terms[i];
+        if (strcmp(tok, "NUMBER") == 0) {
+            has_number = 1;
+        } else if (strcmp(tok, "STRING") == 0) {
+            has_string = 1;
+        } else if (!ident_tok && (strcmp(tok, "IDENTIFIER") == 0 || strcmp(tok, "IDENT") == 0 || strcmp(tok, "ID") == 0)) {
+            ident_tok = tok;
         }
     }
-    
-    // Generate keyword patterns for other ALL_CAPS tokens (excluding NUMBER/IDENT)
+
+    if (has_number) fputs("[0-9]+(\\.[0-9]+)?  return NUMBER;\n", l);
+    if (has_string) {
+        fputs("\"\\\"\"(\\\\.|[^\"\\\\])*\"\\\"\"  return STRING;\n", l);
+    }
+
+    // Generate keyword/operator patterns for other ALL_CAPS tokens (excluding NUMBER/IDENT)
     for (size_t i = 0; i < g->term_len; ++i) {
         const char *tok = g->terms[i];
         if (is_all_caps(tok) && 
             strcmp(tok, "NUMBER") != 0 && 
             strcmp(tok, "IDENT") != 0 && 
-            strcmp(tok, "ID") != 0) {
-            // Convert to lowercase for keyword matching
-            fprintf(l, "%s       return %s;\n", tok, tok);
+            strcmp(tok, "ID") != 0 &&
+            strcmp(tok, "STRING") != 0 &&
+            strcmp(tok, "IDENTIFIER") != 0) {
+            const char *lexeme = guess_operator_lexeme(tok);
+            if (!lexeme) {
+                lexeme = tok;
+            }
+            flex_write_literal(l, lexeme);
+            fprintf(l, "       return %s;\n", tok);
         }
     }
-    
+
+    if (ident_tok) {
+        fprintf(l, "[A-Za-z_][A-Za-z0-9_]*  return %s;\n", ident_tok);
+    }
+
     // Whitespace and catch-all rules
     fputs("[ \\t\\r\\n]+  /* skip whitespace */;\n", l);
     fputs(".         return yytext[0];\n\n", l);
