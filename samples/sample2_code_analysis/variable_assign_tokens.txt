@@ -1,6 +1,3 @@
-# Example VARIABLE_ASSIGN tokens
-# Generated automatically for testing
-
 x = 10
-result = calculate()
+result = func()
 data = []

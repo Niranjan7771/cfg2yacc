@@ -1,6 +1,2 @@
-# Example SUSPICIOUS_LINK tokens
-# Generated automatically for testing
-
 bit.ly/xyz123
 tinyurl.com/abc
-shorturl.at/def

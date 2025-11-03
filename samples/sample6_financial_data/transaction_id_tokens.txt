@@ -1,6 +1,2 @@
-# Example TRANSACTION_ID tokens
-# Generated automatically for testing
-
 TXN-ABC123XYZ
 TXN-DEF456UVW
-TXN-GHI789RST

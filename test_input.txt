@@ -1,2 +1,0 @@
-analyze emails from "inbox.txt" where subject contains "urgent";
-show "Analysis complete";

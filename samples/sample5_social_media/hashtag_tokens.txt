@@ -1,9 +1,3 @@
-# Example HASHTAG tokens
-# Generated automatically for testing
-
 #technology
 #ai
 #programming
-#python
-#coding
-#webdev

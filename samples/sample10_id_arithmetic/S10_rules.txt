@@ -1,0 +1,97 @@
+# Sample 10: ID Arithmetic
+
+## Token Definitions
+
+### id (Identifier)
+- **Format**: `[a-z]`
+- **Description**: Single lowercase letter
+- **Examples**: a, b, c, x, y, z
+
+### num (Number)
+- **Format**: `[0-9]+`
+- **Description**: One or more digits
+- **Examples**: 5, 12, 100, 999
+
+### sym (Symbol/Operator)
+- **Format**: `+|*|-`
+- **Description**: Arithmetic operators
+- **Examples**: +, *, -
+
+## Grammar Rules
+
+The grammar defines how identifiers can be formed and combined:
+
+```
+id -> id * id    (multiplication)
+id -> id + id    (addition)
+id -> id - id    (subtraction)
+id -> num        (number is an identifier)
+```
+
+This means:
+- An `id` can be a number
+- An `id` can be two `id`s multiplied together
+- An `id` can be two `id`s added together
+- An `id` can be two `id`s subtracted
+
+## Input Examples
+
+```
+a           → Single identifier
+b+c         → Two identifiers added
+x*y         → Two identifiers multiplied
+m-n         → Two identifiers subtracted
+5           → Number (which is an id)
+3+7         → Two numbers added
+9*2         → Two numbers multiplied
+8-4         → Two numbers subtracted
+a+5         → Identifier + number
+x*3         → Identifier * number
+```
+
+## Parse Tree Structure
+
+For input `b+c`:
+```
+start
+  └─ id_expr
+      └─ id
+          ├─ id (b)
+          ├─ plus (+)
+          └─ id (c)
+```
+
+For input `3+7`:
+```
+start
+  └─ id_expr
+      └─ id
+          ├─ id
+          │   └─ num (3)
+          ├─ plus (+)
+          └─ id
+              └─ num (7)
+```
+
+## How to Run
+
+```bash
+# Terminal visualization
+make run DEF_FILE=samples/sample10_id_arithmetic/S10_analyzer.def
+
+# Web UI
+./run_ui.sh
+# Select "Sample 10: ID Arithmetic" from dropdown
+
+# Custom input
+echo "a+b" | ./custom_compiler | python3 visualize_tree.py --style fancy
+```
+
+## Key Concepts
+
+1. **Token Recognition**: Single letters and numbers are recognized as basic tokens
+2. **Grammar Composition**: Shows how simple tokens combine into expressions
+3. **Recursive Rules**: `id` can contain other `id`s, creating nested structures
+4. **Operator Precedence**: All operators treated equally (left-to-right parsing)
+
+This example demonstrates how identifiers and numbers can be combined using arithmetic operators in a simple expression language.

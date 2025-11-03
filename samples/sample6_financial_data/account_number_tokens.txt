@@ -1,6 +1,2 @@
-# Example ACCOUNT_NUMBER tokens
-# Generated automatically for testing
-
 ACC-123456789
 ACC-987654321
-ACC-111222333

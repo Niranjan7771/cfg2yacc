@@ -1,6 +1,2 @@
-# Example FUNCTION_DEF tokens
-# Generated automatically for testing
-
-def calculate_total():
+def calculate():
 function getData() {
-void processData() {

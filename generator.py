@@ -1,6 +1,67 @@
 #!/usr/bin/env python3
 import sys
+import os
+import re
+from pathlib import Path
 from typing import List, Tuple
+
+# Token data templates - comprehensive examples for auto-generation
+TOKEN_TEMPLATES = {
+    'EMAIL': ['john.doe@example.com', 'alice@test.org', 'support@company.net'],
+    'EMAIL_ADDR': ['john.doe@company.com', 'support@bank.com', 'info@site.org'],
+    'PHONE_NUMBER': ['555-123-4567', '800-555-0199', '555-987-6543'],
+    'PHONE_FORMATTED': ['(555) 123-4567', '(800) 555-0199', '(212) 555-1234'],
+    'PHONE_SIMPLE': ['555-987-6543', '123 456 7890', '555.123.4567'],
+    'WEBSITE_URL': ['www.example.com', 'www.bank.com', 'www.store.org'],
+    'CURRENCY': ['$99.99', '$25.00', '$15.50', '$500.00'],
+    'CURRENCY_USD': ['$1,234.56', '$999.99', '$50.00'],
+    'DATE_FORMAT': ['12/15/2024', '01/01/2025', '03/14/2024'],
+    'DATE_MEDICAL': ['11/03/2025', '10/15/2024', '12/25/2024'],
+    'TIME_MEDICAL': ['09:30AM', '02:15PM', '11:45AM'],
+    'URGENT': ['URGENT', 'IMMEDIATE', 'ACT NOW', 'LIMITED TIME'],
+    'SPAM_WORDS': ['winner', 'free', 'prize', 'congratulations'],
+    'MONEY_TERMS': ['cash', 'money', 'profit', 'income'],
+    'URGENCY_WORDS': ['urgent', 'immediate', 'now', 'hurry'],
+    'SUSPICIOUS_LINK': ['bit.ly/xyz123', 'tinyurl.com/abc'],
+    'CAPS_WORD': ['WINNER', 'FREE', 'GUARANTEED'],
+    'FLOAT_NUMBER': ['3.14', '2.718', '1.23', '99.99'],
+    'NUMBER': ['123', '456', '789', '0', '999'],
+    'INTEGER': ['42', '100', '0', '9999'],
+    'TIMESTAMP': ['2024-11-03 14:23:45', '2024-11-03 09:15:30'],
+    'IP_ADDRESS': ['192.168.1.100', '10.0.0.1', '8.8.8.8'],
+    'HTTP_METHOD': ['GET', 'POST', 'PUT', 'DELETE'],
+    'STATUS_CODE': ['200', '404', '500', '301'],
+    'ERROR_LEVEL': ['ERROR', 'WARNING', 'INFO', 'DEBUG'],
+    'HASHTAG': ['#technology', '#ai', '#programming'],
+    'USER_MENTION': ['@user123', '@john_doe', '@tech_news'],
+    'EMOJI_FACE': ['😀', '😊', '🎉', '❤️'],
+    'LIKE_COUNT': ['1.5K likes', '234 likes', '10K likes'],
+    'SHARE_COUNT': ['500 shares', '1.2K shares', '50 shares'],
+    'ACCOUNT_NUMBER': ['ACC-123456789', 'ACC-987654321'],
+    'TRANSACTION_ID': ['TXN-ABC123XYZ', 'TXN-DEF456UVW'],
+    'STOCK_SYMBOL': ['AAPL', 'GOOGL', 'MSFT', 'TSLA'],
+    'FUNCTION_DEF': ['def calculate():', 'function getData() {'],
+    'VARIABLE_ASSIGN': ['x = 10', 'result = func()', 'data = []'],
+    'STRING_LITERAL': ['"Hello, World!"', "'test string'"],
+    # Medical tokens
+    'PATIENT_ID': ['MR234567', 'AB123456', 'CD789012', 'EF456789'],
+    'BLOOD_TYPE': ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
+    'BLOOD_PRESSURE': ['120/80', '130/85', '140/90', '110/70'],
+    'TEMPERATURE': ['98.6F', '99.2F', '97.8F', '37.0C'],
+    'HEART_RATE': ['72bpm', '78bpm', '85bpm', '95bpm'],
+    'WEIGHT': ['75kg', '62kg', '82kg', '165lbs'],
+    'HEIGHT': ['1.75m', '1.65m', '180cm', '175cm'],
+    'GLUCOSE_LEVEL': ['95mg/dL', '110mg/dL', '88mg/dL'],
+    'PRESCRIPTION': ['Rx12345678', 'Rx23456789', 'Rx34567890'],
+    'DIAGNOSIS_CODE': ['ICD10-I21', 'ICD10-E11', 'ICD10-G40'],
+    'DOCTOR_ID': ['Dr.Smith', 'Dr.Johnson', 'Dr.Williams'],
+    'TEST_RESULT': ['Positive', 'Negative', 'Pending', 'Abnormal', 'Normal'],
+    'SEVERITY': ['Critical', 'Severe', 'Moderate', 'Mild'],
+    'DEPARTMENT': ['Cardiology', 'Neurology', 'Emergency', 'ICU'],
+    'GENDER': ['Male', 'Female', 'Other'],
+    'AGE_UNIT': ['years', 'yrs'],
+    'DOSAGE_FORM': ['tablet', 'tablets', 'capsule', 'capsules', 'pill', 'pills', 'dose', 'doses', 'ml', 'mg'],
+}
 
 class LexRule:
     def __init__(self, token_name: str, regex: str):
@@ -207,6 +268,55 @@ def generate_parser(lex_rules: List[LexRule], grammar_rules: List[GrammarRule], 
         f.write('    return result;\n')
         f.write('}\n')
 
+def generate_token_files(lex_rules: List[LexRule], def_file: str):
+    """Generate token example files for the analyzer"""
+    # Get the directory containing the .def file
+    def_path = Path(def_file)
+    output_dir = def_path.parent
+    
+    # Skip tokens that are typically punctuation or whitespace
+    skip_tokens = {
+        'WHITESPACE', 'NEWLINE', 'SPACE', 'TAB', 
+        'COMMA', 'DOT', 'COLON', 'SEMICOLON', 
+        'LPAREN', 'RPAREN', 'LBRACE', 'RBRACE',
+        'LBRACKET', 'RBRACKET', 'QUOTE', 'DQUOTE',
+        'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'STAR',
+        'EQUALS', 'DASH', 'SLASH', 'BACKSLASH',
+        'PERCENT', 'DOLLAR', 'AT', 'HASH', 'EXCLAIM',
+        'QUESTION', 'AMPERSAND', 'PIPE', 'CARET',
+        'TILDE', 'BACKTICK', 'UNDERSCORE',
+        'LETTER', 'DIGIT', 'WORD', 'CHAR'
+    }
+    
+    files_created = 0
+    
+    for rule in lex_rules:
+        token_name = rule.token_name
+        
+        # Skip common punctuation/whitespace tokens
+        if token_name.upper() in skip_tokens:
+            continue
+        
+        # Check if we have a template for this token
+        if token_name in TOKEN_TEMPLATES or token_name.upper() in TOKEN_TEMPLATES:
+            data = TOKEN_TEMPLATES.get(token_name) or TOKEN_TEMPLATES.get(token_name.upper())
+        else:
+            # No template available
+            continue
+        
+        # Create token file
+        filename = f"{token_name.lower()}_tokens.txt"
+        filepath = output_dir / filename
+        
+        with open(filepath, 'w') as f:
+            for item in data:
+                f.write(f"{item}\n")
+        
+        files_created += 1
+    
+    if files_created > 0:
+        print(f'Generated {files_created} token example files in {output_dir}')
+
 def main():
     if len(sys.argv) != 2:
         print('Usage: generator.py <input.def>')
@@ -224,6 +334,9 @@ def main():
     
     print('Generating parser.y...')
     generate_parser(lex_rules, grammar_rules, 'parser.y')
+    
+    print('Generating token example files...')
+    generate_token_files(lex_rules, def_file)
     
     print('Generation complete!')
 

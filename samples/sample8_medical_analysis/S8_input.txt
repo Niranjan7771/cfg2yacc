@@ -1,0 +1,7 @@
+Patient MR234567 is Male with blood type A+
+Temperature 98.6F blood pressure 120/80 heart rate 72bpm
+Weight 75kg height 1.75m glucose 95mg/dL
+Test results Normal and Normal severity Moderate
+Diagnosis ICD10-I21 prescription Rx12345678
+Doctor Dr.Smith at Cardiology on 11/03/2025 at 09:30AM
+Take 2 tablets daily

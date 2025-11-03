@@ -1,0 +1,42 @@
+# Simple Calculator Example
+# This is the SIMPLEST example to understand how the system works
+# It recognizes numbers and basic math operations: + - * /
+
+%%LEX
+# Numbers (integers only for simplicity)
+NUMBER [0-9]+
+
+# Math operators
+PLUS \+
+MINUS -
+TIMES \*
+DIVIDE \/
+
+# Whitespace (skip it)
+WHITESPACE [ \t\r]+
+NEWLINE \n
+
+%%YACC
+# A document is a list of expressions
+document -> expr_list
+    { $$ = create_node("calculator", 1, $1); }
+
+# Expression list: one or more expressions
+expr_list -> expression
+    { $$ = create_node("expr_list", 1, $1); }
+    | expr_list expression
+    { $$ = create_node("expr_list", 2, $1, $2); }
+
+# Expression: NUMBER operator NUMBER
+expression -> NUMBER operator NUMBER NEWLINE
+    { $$ = create_node("expression", 4, $1, $2, $3, $4); }
+
+# Operators
+operator -> PLUS
+    { $$ = create_node("add", 1, $1); }
+    | MINUS
+    { $$ = create_node("subtract", 1, $1); }
+    | TIMES
+    { $$ = create_node("multiply", 1, $1); }
+    | DIVIDE
+    { $$ = create_node("divide", 1, $1); }

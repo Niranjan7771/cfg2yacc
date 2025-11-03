@@ -1,8 +1,4 @@
-# Example STOCK_SYMBOL tokens
-# Generated automatically for testing
-
 AAPL
 GOOGL
 MSFT
 TSLA
-AMZN

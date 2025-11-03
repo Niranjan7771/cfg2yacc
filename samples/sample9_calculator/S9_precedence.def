@@ -1,0 +1,63 @@
+# Calculator with Operator Precedence
+# This example shows how to handle precedence: * and / before + and -
+# Also supports parentheses to override precedence
+
+%%LEX
+# Numbers
+NUMBER [0-9]+
+
+# Operators (in order of precedence when parsing)
+PLUS \+
+MINUS -
+TIMES \*
+DIVIDE \/
+
+# Parentheses
+LPAREN \(
+RPAREN \)
+
+# Whitespace
+WHITESPACE [ \t\r]+
+NEWLINE \n
+
+%%YACC
+# Document contains a list of expressions
+document -> expr_list
+    { $$ = create_node("calculator", 1, $1); }
+
+# List of expressions
+expr_list -> expression
+    { $$ = create_node("expr_list", 1, $1); }
+    | expr_list expression
+    { $$ = create_node("expr_list", 2, $1, $2); }
+
+# Each expression is an expr followed by newline
+expression -> expr NEWLINE
+    { $$ = create_node("expression", 2, $1, $2); }
+
+# Expression with proper precedence
+# IMPORTANT: The order of rules doesn't determine precedence in YACC
+# Precedence is determined by which rules can recurse deeper in the tree
+# To get proper precedence, we need to structure the grammar correctly
+
+# Addition and Subtraction (lowest precedence - evaluated last)
+expr -> expr PLUS term
+    { $$ = create_node("add", 3, $1, $2, $3); }
+    | expr MINUS term
+    { $$ = create_node("subtract", 3, $1, $2, $3); }
+    | term
+    { $$ = $1; }
+
+# Multiplication and Division (higher precedence - evaluated first)
+term -> term TIMES factor
+    { $$ = create_node("multiply", 3, $1, $2, $3); }
+    | term DIVIDE factor
+    { $$ = create_node("divide", 3, $1, $2, $3); }
+    | factor
+    { $$ = $1; }
+
+# Factor: numbers or parenthesized expressions (highest precedence)
+factor -> NUMBER
+    { $$ = create_node("number", 1, $1); }
+    | LPAREN expr RPAREN
+    { $$ = create_node("parens", 3, $1, $2, $3); }

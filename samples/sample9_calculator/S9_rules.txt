@@ -1,0 +1,74 @@
+# Sample 9: Simple Calculator - The EASIEST Example
+
+## What This Does
+This is the **simplest possible example** to understand how cfg2yacc works.
+It recognizes basic math expressions like `5 + 3` or `10 - 2`.
+
+## The Parts
+
+### 1. TOKENS (What We Recognize)
+- **NUMBER**: Any sequence of digits (like 5, 10, 100)
+- **PLUS**: The + symbol
+- **MINUS**: The - symbol  
+- **TIMES**: The * symbol
+- **DIVIDE**: The / symbol
+- **NEWLINE**: End of line
+
+### 2. GRAMMAR (How We Structure It)
+```
+expression = NUMBER operator NUMBER
+operator = PLUS or MINUS or TIMES or DIVIDE
+```
+
+So `5 + 3` becomes:
+- NUMBER (5)
+- PLUS (+)
+- NUMBER (3)
+
+## Example Input
+```
+5 + 3
+10 - 2
+4 * 6
+```
+
+## What You'll See
+The system will parse this and create a tree showing:
+```
+calculator
+  └─ expr_list
+      ├─ expression
+      │   ├─ NUMBER: 5
+      │   ├─ add
+      │   │   └─ PLUS: +
+      │   └─ NUMBER: 3
+      ├─ expression
+      │   ├─ NUMBER: 10
+      │   ├─ subtract
+      │   │   └─ MINUS: -
+      │   └─ NUMBER: 2
+      └─ expression
+          ├─ NUMBER: 4
+          ├─ multiply
+          │   └─ TIMES: *
+          └─ NUMBER: 6
+```
+
+## How to Run
+```bash
+# Build and visualize
+make run DEF_FILE=samples/sample9_calculator/S9_analyzer.def
+
+# Or with web UI
+./run_ui.sh
+# Then select "Sample 9: Calculator" from dropdown
+```
+
+## Key Concept
+This shows the **core idea** of cfg2yacc:
+1. You define TOKENS (what to recognize)
+2. You define GRAMMAR (how to structure it)
+3. The system generates a parser
+4. You get a beautiful parse tree!
+
+That's it! This is the foundation for all the other samples.

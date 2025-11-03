@@ -1,6 +1,2 @@
-# Example TIMESTAMP tokens
-# Generated automatically for testing
-
 2024-11-03 14:23:45
 2024-11-03 09:15:30
-2024-11-03 18:45:12

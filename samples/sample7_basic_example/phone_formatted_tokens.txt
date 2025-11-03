@@ -1,7 +1,3 @@
-# Example PHONE_FORMATTED tokens
-# Generated automatically for testing
-
 (555) 123-4567
 (800) 555-0199
 (212) 555-1234
-(999) 888-7777

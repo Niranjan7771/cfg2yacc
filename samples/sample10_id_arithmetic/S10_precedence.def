@@ -1,0 +1,54 @@
+# ID Arithmetic with Precedence
+# Demonstrates how to enforce operator precedence:
+# Multiplication (*) has higher precedence than addition (+) and subtraction (-)
+
+%%LEX
+# Single lowercase letter
+ID [a-z]
+
+# One or more digits  
+NUM [0-9]+
+
+# Operators
+PLUS \+
+TIMES \*
+MINUS -
+
+# Whitespace (skip)
+WHITESPACE [ \t\r]+
+NEWLINE \n
+
+%%YACC
+# Document is a list of identifier expressions
+document -> expr_list
+    { $$ = create_node("document", 1, $1); }
+
+# List of expressions
+expr_list -> expression
+    { $$ = create_node("expr_list", 1, $1); }
+    | expr_list expression
+    { $$ = create_node("expr_list", 2, $1, $2); }
+
+# An expression is an identifier followed by newline
+expression -> identifier NEWLINE
+    { $$ = create_node("expression", 2, $1, $2); }
+
+# Addition and Subtraction (lower precedence)
+identifier -> identifier PLUS term
+    { $$ = create_node("add", 3, $1, $2, $3); }
+    | identifier MINUS term
+    { $$ = create_node("subtract", 3, $1, $2, $3); }
+    | term
+    { $$ = $1; }
+
+# Multiplication (higher precedence)
+term -> term TIMES factor
+    { $$ = create_node("multiply", 3, $1, $2, $3); }
+    | factor
+    { $$ = $1; }
+
+# Base cases: ID or NUM
+factor -> NUM
+    { $$ = create_node("num", 1, $1); }
+    | ID
+    { $$ = create_node("id", 1, $1); }

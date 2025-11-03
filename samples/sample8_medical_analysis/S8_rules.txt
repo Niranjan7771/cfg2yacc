@@ -1,0 +1,21 @@
+# Medical Report Analysis - Grammar Rules
+
+## Token Patterns:
+- PATIENT_ID: Two uppercase letters followed by 6 digits (e.g., MR234567)
+- BLOOD_PRESSURE: Systolic/Diastolic format (e.g., 120/80)
+- TEMPERATURE: Temperature with F or C unit (e.g., 98.6F, 37.0C)
+- HEART_RATE: Beats per minute (e.g., 72bpm)
+- WEIGHT: Weight in kg or lbs (e.g., 75kg, 165lbs)
+- HEIGHT: Height in meters or centimeters (e.g., 1.75m, 175cm)
+- BLOOD_TYPE: Blood type with Rh factor (e.g., A+, O-, AB+)
+- GLUCOSE_LEVEL: Blood glucose in mg/dL (e.g., 95mg/dL)
+- PRESCRIPTION: Prescription ID with Rx prefix (e.g., Rx12345678)
+- DIAGNOSIS_CODE: ICD code format (e.g., ICD10-I21)
+- DATE_MEDICAL: Date in MM/DD/YYYY format
+- TIME_MEDICAL: 12-hour time format with AM/PM
+- SEVERITY: Clinical severity level
+- DEPARTMENT: Hospital department name
+- TEST_RESULT: Medical test outcome
+- DOCTOR_ID: Doctor identifier (e.g., Dr.Smith)
+- NUMBER: Generic numeric value
+
