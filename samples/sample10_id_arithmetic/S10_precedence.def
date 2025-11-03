@@ -33,6 +33,13 @@ expr_list -> expression
 expression -> identifier NEWLINE
     { $$ = create_node("expression", 2, $1, $2); }
 
+# Multiplication (higher precedence)
+term -> term TIMES factor
+    { $$ = create_node("multiply", 3, $1, $2, $3); }
+    | factor
+    { $$ = $1; }
+
+
 # Addition and Subtraction (lower precedence)
 identifier -> identifier PLUS term
     { $$ = create_node("add", 3, $1, $2, $3); }
@@ -41,11 +48,7 @@ identifier -> identifier PLUS term
     | term
     { $$ = $1; }
 
-# Multiplication (higher precedence)
-term -> term TIMES factor
-    { $$ = create_node("multiply", 3, $1, $2, $3); }
-    | factor
-    { $$ = $1; }
+
 
 # Base cases: ID or NUM
 factor -> NUM
