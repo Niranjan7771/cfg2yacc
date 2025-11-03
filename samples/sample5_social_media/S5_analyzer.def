@@ -1,0 +1,72 @@
+# Social Media Content Analysis Language
+# Analyzes social media posts for hashtags, mentions, emoji, engagement metrics, etc.
+
+%%LEX
+# Social media specific patterns
+HASHTAG #[a-zA-Z0-9_]+
+USER_MENTION @[a-zA-Z0-9_]+
+EMOJI_FACE :[a-zA-Z_]+:
+LIKE_COUNT [0-9]+[ \t]*likes?
+SHARE_COUNT [0-9]+[ \t]*(shares?|retweets?)
+TRENDING_WORDS viral|trending|popular|famous|celebrity
+
+# General patterns
+WORD [a-zA-Z]+
+NUMBER [0-9]+
+HASH #
+AT @
+COLON :
+DOT \.
+COMMA ,
+EXCLAIM !
+QUESTION \?
+NEWLINE \n
+WHITESPACE [ \t\r]+
+
+%%YACC
+# Social media document
+social_document -> post_list
+    { $$ = create_node("social_media_document", 1, $1); }
+
+post_list -> post_item
+    { $$ = create_node("post_list", 1, $1); }
+    | post_list post_item
+    { $$ = create_node("post_list", 2, $1, $2); }
+
+# Post items (social media elements)
+post_item -> HASHTAG
+    { $$ = create_node("hashtag_detected", 1, $1); }
+    | USER_MENTION
+    { $$ = create_node("user_mention_detected", 1, $1); }
+    | EMOJI_FACE
+    { $$ = create_node("emoji_detected", 1, $1); }
+    | LIKE_COUNT
+    { $$ = create_node("like_count_detected", 1, $1); }
+    | SHARE_COUNT
+    { $$ = create_node("share_count_detected", 1, $1); }
+    | TRENDING_WORDS
+    { $$ = create_node("trending_word_detected", 1, $1); }
+    | WORD
+    { $$ = create_node("word", 1, $1); }
+    | NUMBER
+    { $$ = create_node("number", 1, $1); }
+    | punctuation
+    { $$ = $1; }
+    | NEWLINE
+    { $$ = create_leaf_node("newline", "\\n"); }
+
+# Punctuation
+punctuation -> HASH
+    { $$ = $1; }
+    | AT
+    { $$ = $1; }
+    | COLON
+    { $$ = $1; }
+    | DOT
+    { $$ = $1; }
+    | COMMA
+    { $$ = $1; }
+    | EXCLAIM
+    { $$ = $1; }
+    | QUESTION
+    { $$ = $1; }

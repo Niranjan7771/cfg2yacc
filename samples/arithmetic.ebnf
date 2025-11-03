@@ -1,5 +1,0 @@
-# Arithmetic expressions with precedence and unary operators
-
-expression      ::= term (('+' | '-') term)* ;
-term            ::= factor (('*' | '/') factor)* ;
-factor          ::= NUMBER | '(' expression ')' | ('+' | '-') factor ;

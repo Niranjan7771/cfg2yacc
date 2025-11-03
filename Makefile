@@ -1,43 +1,99 @@
+# Makefile for Python-based Compiler-Generator System
 CC = gcc
-CFLAGS = -std=c11 -Wall -Wextra -g -Iinclude
-LDFLAGS =
+CFLAGS = -Wall -g
+PYTHON = python3
+GENERATOR_SCRIPT = generator.py
+VISUALIZER_SCRIPT = visualize_tree.py
+DEF_FILE = calculator.def
 
-SRC_DIR = src
-INC_DIR = include
-BUILD_DIR = build
-BIN = cfg2yacc
+# Parse-tree library
+LIB_SRCS = ast.c
+LIB_OBJS = $(LIB_SRCS:.c=.o)
 
-SRCS = $(wildcard $(SRC_DIR)/*.c)
-OBJS = $(SRCS:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+# Generated files
+LEXER_SOURCE = lexer.l
+PARSER_SOURCE = parser.y
+LEXER_OUTPUT = lex.yy.c
+PARSER_OUTPUT = y.tab.c
+PARSER_HEADER = y.tab.h
 
-.PHONY: all clean tests run report
+# Final compiler executable
+TARGET = custom_compiler
 
-all: $(BIN)
+# Default target
+all: $(TARGET)
 
-$(BIN): $(BUILD_DIR) $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)
+# Generate lexer.l and parser.y from .def file using Python generator
+$(LEXER_SOURCE) $(PARSER_SOURCE): $(DEF_FILE) $(GENERATOR_SCRIPT)
+	@echo "Generating lexer and parser from $(DEF_FILE)..."
+	$(PYTHON) $(GENERATOR_SCRIPT) $(DEF_FILE)
 
-$(BUILD_DIR):
-	mkdir -p $(BUILD_DIR)
+# Generate C code from lexer specification
+$(LEXER_OUTPUT): $(LEXER_SOURCE)
+	@echo "Running Flex on $(LEXER_SOURCE)..."
+	flex $(LEXER_SOURCE)
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(wildcard $(INC_DIR)/*.h)
+# Generate C code from parser specification
+$(PARSER_OUTPUT) $(PARSER_HEADER): $(PARSER_SOURCE)
+	@echo "Running Bison on $(PARSER_SOURCE)..."
+	bison -d -o $(PARSER_OUTPUT) $(PARSER_SOURCE)
+
+# Compile parse-tree library
+%.o: %.c
+	@echo "Compiling $<..."
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# Link everything into final compiler
+$(TARGET): $(PARSER_OUTPUT) $(LEXER_OUTPUT) $(LIB_OBJS)
+	@echo "Linking $(TARGET)..."
+	$(CC) $(CFLAGS) -o $@ $^ -lfl
+	@echo "Build complete: $(TARGET)"
+
+# Clean generated files
 clean:
-	rm -rf $(BUILD_DIR) $(BIN) out.* *.tab.* *.output parser logs tests/results.txt
+	@echo "Cleaning generated files..."
+	rm -f $(LEXER_OUTPUT) $(PARSER_OUTPUT) $(PARSER_HEADER)
+	rm -f $(LEXER_SOURCE) $(PARSER_SOURCE)
+	rm -f $(LIB_OBJS)
+	rm -f $(TARGET)
+	@echo "Clean complete."
 
-tests: $(BIN)
-	./tests/run_tests.sh
+# Clean everything including backups
+distclean: clean
+	rm -f *.backup
 
-run: $(BIN)
-	./$(BIN) -i samples/expr.ebnf -o out.y --emit-lex out.l
+# Rebuild from scratch
+rebuild: clean all
 
-report:
-	@if command -v pandoc >/dev/null 2>&1; then \
-		pandoc -s -o report.pdf REPORT.md; \
-		echo "report.pdf generated"; \
-	else \
-		echo "pandoc not found; please convert REPORT.md manually"; \
-	fi
+# Detect input file based on DEF_FILE
+# If DEF_FILE is in samples/, use corresponding input file, otherwise use test_input.txt
+define get_input_file
+$(if $(findstring samples/,$(1)),$(dir $(1))$(shell basename $(1) .def | sed 's/_analyzer/_input/').txt,test_input.txt)
+endef
 
+INPUT_FILE = $(call get_input_file,$(DEF_FILE))
 
+# Run with colorful visualization (pipe through visualizer)
+# First clean and rebuild to ensure we use the correct DEF_FILE
+run: clean all
+	@INPUT="$(INPUT_FILE)"; \
+	if [ ! -f "$$INPUT" ]; then \
+		echo "Error: Input file $$INPUT not found"; \
+		echo "Expected input file based on $(DEF_FILE)"; \
+		exit 1; \
+	fi; \
+	echo "Running $(TARGET) with colorful visualization..."; \
+	echo "Input: $$INPUT"; \
+	./$(TARGET) < "$$INPUT" | $(PYTHON) $(VISUALIZER_SCRIPT)
+
+# Run with different visualization styles
+run-simple: clean all
+	@INPUT="$(INPUT_FILE)"; ./$(TARGET) < "$$INPUT" | $(PYTHON) $(VISUALIZER_SCRIPT) --style simple
+
+run-compact: clean all
+	@INPUT="$(INPUT_FILE)"; ./$(TARGET) < "$$INPUT" | $(PYTHON) $(VISUALIZER_SCRIPT) --style compact
+
+run-stats: clean all
+	@INPUT="$(INPUT_FILE)"; ./$(TARGET) < "$$INPUT" | $(PYTHON) $(VISUALIZER_SCRIPT) --stats
+
+.PHONY: all clean distclean rebuild run run-simple run-compact run-stats

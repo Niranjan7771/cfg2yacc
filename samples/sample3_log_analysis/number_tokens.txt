@@ -1,0 +1,8 @@
+# Example NUMBER tokens
+# Generated automatically for testing
+
+123
+456
+789
+0
+999

@@ -1,0 +1,6 @@
+# Example PHONE_SIMPLE tokens
+# Generated automatically for testing
+
+555-987-6543
+123 456 7890
+555.123.4567

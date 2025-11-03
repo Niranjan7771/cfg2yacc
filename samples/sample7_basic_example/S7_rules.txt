@@ -1,0 +1,22 @@
+# Sample Rules File for Text-to-Lex Generator
+# This file demonstrates the token definition format with EMAIL, PHONE, FLOAT_NUMBER, and WORD tokens
+
+TOKEN EMAIL
+DESCRIPTION Email addresses in standard format
+PATTERN [a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}
+ACTION Count and print email addresses found
+
+TOKEN PHONE
+DESCRIPTION Phone numbers in various formats
+PATTERN (\([0-9]{3}\)|[0-9]{3})[- ]?[0-9]{3}[- ]?[0-9]{4}
+ACTION Count phone numbers
+
+TOKEN FLOAT_NUMBER
+DESCRIPTION Floating point numbers with decimal places
+PATTERN [0-9]+\.[0-9]+
+ACTION Print floating point numbers found
+
+TOKEN WORD
+DESCRIPTION Alphabetic words (sequences of letters)
+PATTERN [a-zA-Z]+
+ACTION Count words only

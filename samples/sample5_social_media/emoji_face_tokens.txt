@@ -1,0 +1,8 @@
+# Example EMOJI_FACE tokens
+# Generated automatically for testing
+
+😀
+😊
+🎉
+❤️
+👍

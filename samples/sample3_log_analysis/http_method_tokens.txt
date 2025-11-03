@@ -1,0 +1,8 @@
+# Example HTTP_METHOD tokens
+# Generated automatically for testing
+
+GET
+POST
+PUT
+DELETE
+PATCH

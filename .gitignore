@@ -2,6 +2,7 @@
 build/
 *.o
 cfg2yacc
+custom_compiler
 
 # Generated outputs
 out.y
@@ -9,6 +10,22 @@ out.l
 *.yy.c
 *.tab.c
 *.tab.h
+lexer.l
+parser.y
+y.tab.c
+y.tab.h
+lex.yy.c
+parser.output
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Backup files
+*.backup
+*.old
+*.bak
 
 # OS/editor
 .DS_Store

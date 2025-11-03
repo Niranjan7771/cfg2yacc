@@ -1,0 +1,8 @@
+# Example ERROR_LEVEL tokens
+# Generated automatically for testing
+
+ERROR
+WARNING
+INFO
+DEBUG
+CRITICAL

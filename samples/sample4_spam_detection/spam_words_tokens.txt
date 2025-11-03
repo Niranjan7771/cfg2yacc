@@ -1,0 +1,9 @@
+# Example SPAM_WORDS tokens
+# Generated automatically for testing
+
+winner
+free
+prize
+congratulations
+click here
+limited time

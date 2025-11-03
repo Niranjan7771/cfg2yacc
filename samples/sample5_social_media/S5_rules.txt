@@ -1,0 +1,32 @@
+# Social Media Content Analysis Rules
+# Analyzes social media posts for engagement patterns
+
+TOKEN HASHTAG
+DESCRIPTION Social media hashtags
+PATTERN #[a-zA-Z0-9_]+
+ACTION Count and print hashtags
+
+TOKEN USER_MENTION
+DESCRIPTION User mentions with @
+PATTERN @[a-zA-Z0-9_]+
+ACTION Count user mentions
+
+TOKEN EMOJI_FACE
+DESCRIPTION Face emoji expressions
+PATTERN :[a-zA-Z_]+:
+ACTION Print emoji expressions
+
+TOKEN LIKE_COUNT
+DESCRIPTION Like counts in posts
+PATTERN [0-9]+\s*likes?
+ACTION Count and print like counts
+
+TOKEN SHARE_COUNT
+DESCRIPTION Share/retweet counts
+PATTERN [0-9]+\s*(shares?|retweets?)
+ACTION Count share counts
+
+TOKEN TRENDING_WORDS
+DESCRIPTION Trending/viral words
+PATTERN viral|trending|popular|famous|celebrity
+ACTION Count and print trending words

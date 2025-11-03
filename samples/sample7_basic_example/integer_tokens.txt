@@ -1,0 +1,7 @@
+# Example INTEGER tokens
+# Generated automatically for testing
+
+42
+100
+0
+9999

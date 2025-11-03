@@ -1,0 +1,9 @@
+Hello world! This is a sample text file for testing the lexical analyzer.
+
+Contact information:
+- Email: john.doe@example.com
+- Phone: (555) 123-4567
+- Alternative email: alice_smith@university.edu
+- Mobile: 555-987-6543
+- Work phone: (800) 555-0199
+

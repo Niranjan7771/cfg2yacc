@@ -1,0 +1,6 @@
+# Example STRING_LITERAL tokens
+# Generated automatically for testing
+
+"Hello, World!"
+'test string'
+"""multi-line"""

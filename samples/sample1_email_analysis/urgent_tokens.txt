@@ -1,0 +1,9 @@
+# Example URGENT tokens
+# Generated automatically for testing
+
+URGENT
+IMMEDIATE
+ACT
+NOW
+LIMITED
+TIME

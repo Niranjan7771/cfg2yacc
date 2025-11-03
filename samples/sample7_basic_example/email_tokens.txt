@@ -1,0 +1,9 @@
+# Example EMAIL tokens
+# Generated automatically for testing
+
+john.doe@example.com
+alice_smith@university.edu
+support@company.org
+info@website.net
+user123@domain.co.uk
+test.email@subdomain.example.com

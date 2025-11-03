@@ -1,0 +1,13 @@
+%%LEX
+NUMBER [0-9]+
+PLUS \+
+TIMES \*
+WHITESPACE [ \t\n]+
+
+%%YACC
+expr -> NUMBER
+    { $$ = create_node("number", 1, $1); }
+    | expr PLUS expr
+    { $$ = create_node("addition", 3, $1, $2, $3); }
+    | expr TIMES expr
+    { $$ = create_node("multiplication", 3, $1, $2, $3); }

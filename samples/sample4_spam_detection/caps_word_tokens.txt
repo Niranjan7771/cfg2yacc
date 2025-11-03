@@ -1,0 +1,7 @@
+# Example CAPS_WORD tokens
+# Generated automatically for testing
+
+WINNER
+FREE
+GUARANTEED
+AMAZING

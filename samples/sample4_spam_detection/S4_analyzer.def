@@ -1,0 +1,63 @@
+# Spam Detection Analysis Language
+# Identifies spam indicators like suspicious words, links, phone numbers, etc.
+
+%%LEX
+# Spam indicators
+SPAM_WORDS FREE|WIN|WINNER|CONGRATULATIONS|CLAIM|PRIZE
+MONEY_TERMS CASH|MONEY|DOLLARS|INCOME|PROFIT|EARN
+URGENCY_WORDS NOW|URGENT|IMMEDIATE|HURRY|EXPIRES|LIMITED
+SUSPICIOUS_LINK bit\.ly|tinyurl|click\.here
+PHONE_SPAM 1-800-[0-9]{3}-[0-9]{4}
+CAPS_WORD [A-Z]{4,}
+
+# General patterns
+WORD [a-zA-Z]+
+NUMBER [0-9]+
+DOT \.
+DASH -
+SLASH \/
+COLON :
+NEWLINE \n
+WHITESPACE [ \t\r]+
+
+%%YACC
+# Spam detection document
+spam_document -> content_list
+    { $$ = create_node("spam_document", 1, $1); }
+
+content_list -> content_item
+    { $$ = create_node("content_list", 1, $1); }
+    | content_list content_item
+    { $$ = create_node("content_list", 2, $1, $2); }
+
+# Content items (spam indicators and normal content)
+content_item -> SPAM_WORDS
+    { $$ = create_node("spam_word_detected", 1, $1); }
+    | MONEY_TERMS
+    { $$ = create_node("money_term_detected", 1, $1); }
+    | URGENCY_WORDS
+    { $$ = create_node("urgency_word_detected", 1, $1); }
+    | SUSPICIOUS_LINK
+    { $$ = create_node("suspicious_link_detected", 1, $1); }
+    | PHONE_SPAM
+    { $$ = create_node("spam_phone_detected", 1, $1); }
+    | CAPS_WORD
+    { $$ = create_node("caps_word_detected", 1, $1); }
+    | WORD
+    { $$ = create_node("word", 1, $1); }
+    | NUMBER
+    { $$ = create_node("number", 1, $1); }
+    | punctuation
+    { $$ = $1; }
+    | NEWLINE
+    { $$ = create_leaf_node("newline", "\\n"); }
+
+# Punctuation
+punctuation -> DOT
+    { $$ = $1; }
+    | DASH
+    { $$ = $1; }
+    | SLASH
+    { $$ = $1; }
+    | COLON
+    { $$ = $1; }

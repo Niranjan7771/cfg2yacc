@@ -1,0 +1,32 @@
+# Email Content Analysis Rules
+# Analyzes email content for various patterns
+
+TOKEN EMAIL_ADDR
+DESCRIPTION Email addresses
+PATTERN [a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}
+ACTION Count and print email addresses
+
+TOKEN PHONE_NUMBER
+DESCRIPTION Phone numbers in various formats
+PATTERN [0-9]{3}-[0-9]{3}-[0-9]{4}
+ACTION Count phone numbers
+
+TOKEN CURRENCY
+DESCRIPTION Dollar amounts
+PATTERN \$[0-9]+\.?[0-9]*
+ACTION Print currency amounts
+
+TOKEN DATE_FORMAT
+DESCRIPTION Dates in MM/DD/YYYY format
+PATTERN [0-9]{1,2}\/[0-9]{1,2}\/[0-9]{4}
+ACTION Count dates
+
+TOKEN WEBSITE_URL
+DESCRIPTION Website URLs
+PATTERN www\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}
+ACTION Print website URLs
+
+TOKEN URGENT_WORDS
+DESCRIPTION Urgent/spam keywords
+PATTERN URGENT|IMMEDIATE|LIMITED|TIME
+ACTION Count and print urgent words

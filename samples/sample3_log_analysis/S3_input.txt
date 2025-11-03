@@ -1,0 +1,5 @@
+Web Server Access Log
+
+10:15:23 192.168.1.100 GET /index.html 200 Mozilla/5.0
+
+

@@ -1,0 +1,6 @@
+# Example SHARE_COUNT tokens
+# Generated automatically for testing
+
+500 shares
+1.2K shares
+50 shares

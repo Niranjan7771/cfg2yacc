@@ -1,0 +1,79 @@
+# Email Content Analysis Language
+# Analyzes email content for patterns like addresses, phone numbers, URLs, etc.
+
+%%LEX
+# Email and contact patterns
+EMAIL_ADDR [a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}
+PHONE_NUMBER [0-9]{3}-[0-9]{3}-[0-9]{4}
+WEBSITE_URL www\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}
+
+# Financial patterns
+CURRENCY \$[0-9]+\.?[0-9]*
+DATE_FORMAT [0-9]{1,2}\/[0-9]{1,2}\/[0-9]{4}
+
+# Spam/urgent keywords
+URGENT URGENT|IMMEDIATE|LIMITED|TIME|ACT|NOW
+
+# General text
+WORD [a-zA-Z]+
+NUMBER [0-9]+
+COLON :
+DASH -
+DOT \.
+COMMA ,
+SLASH \/
+LPAREN \(
+RPAREN \)
+AT @
+NEWLINE \n
+WHITESPACE [ \t\r]+
+
+%%YACC
+# Top-level document structure
+document -> item_list
+    { $$ = create_node("email_document", 1, $1); }
+
+item_list -> item
+    { $$ = create_node("item_list", 1, $1); }
+    | item_list item
+    { $$ = create_node("item_list", 2, $1, $2); }
+
+# Individual items (emails, phones, dates, etc.)
+item -> EMAIL_ADDR
+    { $$ = create_node("email_address", 1, $1); }
+    | PHONE_NUMBER
+    { $$ = create_node("phone_number", 1, $1); }
+    | WEBSITE_URL
+    { $$ = create_node("website_url", 1, $1); }
+    | CURRENCY
+    { $$ = create_node("currency_amount", 1, $1); }
+    | DATE_FORMAT
+    { $$ = create_node("date", 1, $1); }
+    | URGENT
+    { $$ = create_node("urgent_keyword", 1, $1); }
+    | WORD
+    { $$ = create_node("word", 1, $1); }
+    | NUMBER
+    { $$ = create_node("number", 1, $1); }
+    | punctuation
+    { $$ = create_node("punctuation", 1, $1); }
+    | NEWLINE
+    { $$ = create_leaf_node("newline", "\\n"); }
+
+# Punctuation
+punctuation -> COLON
+    { $$ = $1; }
+    | DASH
+    { $$ = $1; }
+    | DOT
+    { $$ = $1; }
+    | COMMA
+    { $$ = $1; }
+    | SLASH
+    { $$ = $1; }
+    | LPAREN
+    { $$ = $1; }
+    | RPAREN
+    { $$ = $1; }
+    | AT
+    { $$ = $1; }

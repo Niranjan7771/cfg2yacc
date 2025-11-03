@@ -1,0 +1,32 @@
+# Financial Data Analysis Rules
+# Analyzes financial documents and transactions
+
+TOKEN CURRENCY_USD
+DESCRIPTION US Dollar amounts
+PATTERN \$[0-9,]+\.?[0-9]*
+ACTION Count and print currency amounts
+
+TOKEN ACCOUNT_NUMBER
+DESCRIPTION Bank account numbers
+PATTERN [0-9]{4}-[0-9]{4}-[0-9]{4}
+ACTION Count account numbers
+
+TOKEN TRANSACTION_ID
+DESCRIPTION Transaction identifiers
+PATTERN TXN[0-9]{6,}
+ACTION Print transaction IDs
+
+TOKEN CREDIT_CARD
+DESCRIPTION Credit card numbers (partial)
+PATTERN [0-9]{4}\s[0-9]{4}\s[0-9]{4}
+ACTION Count credit cards
+
+TOKEN STOCK_SYMBOL
+DESCRIPTION Stock ticker symbols
+PATTERN [A-Z]{2,5}
+ACTION Count and print stock symbols
+
+TOKEN PERCENTAGE
+DESCRIPTION Percentage values
+PATTERN [0-9]+\.?[0-9]*%
+ACTION Print percentage values

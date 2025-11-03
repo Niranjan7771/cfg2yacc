@@ -1,0 +1,32 @@
+# Programming Code Analysis Rules
+# Analyzes source code for various programming constructs
+
+TOKEN FUNCTION_NAME
+DESCRIPTION Function definitions
+PATTERN [a-zA-Z_][a-zA-Z0-9_]*\(
+ACTION Count and print function names
+
+TOKEN VARIABLE_ASSIGN
+DESCRIPTION Variable assignments with equals
+PATTERN [a-zA-Z_][a-zA-Z0-9_]*\s*=
+ACTION Count variable assignments
+
+TOKEN STRING_LITERAL
+DESCRIPTION String literals in quotes
+PATTERN \"[^\"]*\"
+ACTION Print string literals
+
+TOKEN NUMBER_CONST
+DESCRIPTION Numeric constants
+PATTERN [0-9]+\.?[0-9]*
+ACTION Count numbers
+
+TOKEN COMMENT_LINE
+DESCRIPTION Single line comments
+PATTERN \/\/.*
+ACTION Count comments
+
+TOKEN KEYWORD_IF
+DESCRIPTION If statements
+PATTERN if\s*\(
+ACTION Count and print if statements

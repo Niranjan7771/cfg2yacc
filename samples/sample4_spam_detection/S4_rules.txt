@@ -1,0 +1,32 @@
+# Spam Detection Analysis Rules
+# Identifies potential spam indicators in text
+
+TOKEN SPAM_WORDS
+DESCRIPTION Common spam keywords
+PATTERN FREE|WIN|WINNER|CONGRATULATIONS|CLAIM|PRIZE
+ACTION Count and print spam words
+
+TOKEN MONEY_TERMS
+DESCRIPTION Money-related spam terms
+PATTERN CASH|MONEY|DOLLARS|INCOME|PROFIT|EARN
+ACTION Count money terms
+
+TOKEN URGENCY_WORDS
+DESCRIPTION Urgency indicators
+PATTERN NOW|URGENT|IMMEDIATE|HURRY|EXPIRES|LIMITED
+ACTION Print urgency words
+
+TOKEN SUSPICIOUS_LINKS
+DESCRIPTION Suspicious link patterns
+PATTERN bit\.ly|tinyurl|click\.here
+ACTION Count and print suspicious links
+
+TOKEN PHONE_SPAM
+DESCRIPTION Phone numbers (potential spam)
+PATTERN 1-800-[0-9]{3}-[0-9]{4}
+ACTION Count phone numbers
+
+TOKEN CAPS_WORDS
+DESCRIPTION All caps words (spam indicator)
+PATTERN [A-Z]{4,}
+ACTION Count caps words

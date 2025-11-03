@@ -1,0 +1,72 @@
+# Server Log Analysis Language
+# Analyzes web server logs for timestamps, IPs, HTTP methods, status codes, etc.
+
+%%LEX
+# Log-specific patterns
+TIMESTAMP [0-9][0-9]:[0-9][0-9]:[0-9][0-9]
+IP_ADDRESS [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}
+HTTP_METHOD GET|POST|PUT|DELETE|HEAD|PATCH|OPTIONS
+STATUS_CODE [1-5][0-9][0-9]
+USER_AGENT Mozilla\/[0-9]\.[0-9]
+ERROR_LEVEL ERROR|WARN|INFO|DEBUG
+
+# General patterns
+WORD [a-zA-Z]+
+NUMBER [0-9]+
+SLASH \/
+DOT \.
+COLON :
+DASH -
+LBRACKET \[
+RBRACKET \]
+QUOTE \"
+NEWLINE \n
+WHITESPACE [ \t\r]+
+
+%%YACC
+# Log document structure
+log_document -> log_entry_list
+    { $$ = create_node("log_document", 1, $1); }
+
+log_entry_list -> log_entry
+    { $$ = create_node("log_entry_list", 1, $1); }
+    | log_entry_list log_entry
+    { $$ = create_node("log_entry_list", 2, $1, $2); }
+
+# Log entries
+log_entry -> TIMESTAMP
+    { $$ = create_node("timestamp_entry", 1, $1); }
+    | IP_ADDRESS
+    { $$ = create_node("ip_address_entry", 1, $1); }
+    | HTTP_METHOD
+    { $$ = create_node("http_method_entry", 1, $1); }
+    | STATUS_CODE
+    { $$ = create_node("status_code_entry", 1, $1); }
+    | USER_AGENT
+    { $$ = create_node("user_agent_entry", 1, $1); }
+    | ERROR_LEVEL
+    { $$ = create_node("error_level_entry", 1, $1); }
+    | WORD
+    { $$ = create_node("word", 1, $1); }
+    | NUMBER
+    { $$ = create_node("number", 1, $1); }
+    | symbol
+    { $$ = $1; }
+    | NEWLINE
+    { $$ = create_leaf_node("newline", "\\n"); }
+
+# Symbols
+symbol -> SLASH
+    { $$ = $1; }
+    | DOT
+    { $$ = $1; }
+    | COLON
+    { $$ = $1; }
+    | DASH
+    { $$ = $1; }
+    | LBRACKET
+    { $$ = $1; }
+    | RBRACKET
+    { $$ = $1; }
+    | QUOTE
+    { $$ = $1; }

@@ -1,0 +1,72 @@
+# Basic Text Analysis Language
+# Simple analyzer for email addresses, phone numbers, floating point numbers, and words
+
+%%LEX
+# Basic patterns
+EMAIL [a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}
+PHONE_FORMATTED \([0-9]{3}\)[ \t]*[0-9]{3}[- ]?[0-9]{4}
+PHONE_SIMPLE [0-9]{3}[- ][0-9]{3}[- ]?[0-9]{4}
+FLOAT_NUMBER [0-9]+\.[0-9]+
+
+# General patterns
+WORD [a-zA-Z]+
+INTEGER [0-9]+
+DOT \.
+DASH -
+AT @
+LPAREN \(
+RPAREN \)
+COMMA ,
+COLON :
+DOLLAR \$
+PERCENT %
+NEWLINE \n
+WHITESPACE [ \t\r]+
+
+%%YACC
+# Document structure
+document -> element_list
+    { $$ = create_node("text_document", 1, $1); }
+
+element_list -> element
+    { $$ = create_node("element_list", 1, $1); }
+    | element_list element
+    { $$ = create_node("element_list", 2, $1, $2); }
+
+# Elements (recognized patterns)
+element -> EMAIL
+    { $$ = create_node("email_found", 1, $1); }
+    | PHONE_FORMATTED
+    { $$ = create_node("phone_formatted_found", 1, $1); }
+    | PHONE_SIMPLE
+    { $$ = create_node("phone_simple_found", 1, $1); }
+    | FLOAT_NUMBER
+    { $$ = create_node("float_number_found", 1, $1); }
+    | WORD
+    { $$ = create_node("word", 1, $1); }
+    | INTEGER
+    { $$ = create_node("integer", 1, $1); }
+    | punctuation
+    { $$ = $1; }
+    | NEWLINE
+    { $$ = create_leaf_node("newline", "\\n"); }
+
+# Punctuation
+punctuation -> DOT
+    { $$ = $1; }
+    | DASH
+    { $$ = $1; }
+    | AT
+    { $$ = $1; }
+    | LPAREN
+    { $$ = $1; }
+    | RPAREN
+    { $$ = $1; }
+    | COMMA
+    { $$ = $1; }
+    | COLON
+    { $$ = $1; }
+    | DOLLAR
+    { $$ = $1; }
+    | PERCENT
+    { $$ = $1; }

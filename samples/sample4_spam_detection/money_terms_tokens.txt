@@ -1,0 +1,9 @@
+# Example MONEY_TERMS tokens
+# Generated automatically for testing
+
+cash
+money
+profit
+income
+earnings
+revenue

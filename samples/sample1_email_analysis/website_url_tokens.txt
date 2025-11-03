@@ -1,0 +1,9 @@
+# Example WEBSITE_URL tokens
+# Generated automatically for testing
+
+www.example.com
+www.securebank.com
+www.deals.net
+www.techblog.org
+www.bank.com
+www.store.com

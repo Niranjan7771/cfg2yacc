@@ -1,0 +1,32 @@
+# Server Log Analysis Rules
+# Analyzes web server access logs
+
+TOKEN TIMESTAMP
+DESCRIPTION Time stamps in HH:MM:SS format
+PATTERN [0-9][0-9]:[0-9][0-9]:[0-9][0-9]
+ACTION Print timestamps
+
+TOKEN IP_ADDRESS
+DESCRIPTION IPv4 addresses
+PATTERN [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}
+ACTION Count IP addresses
+
+TOKEN HTTP_METHOD
+DESCRIPTION HTTP request methods
+PATTERN GET|POST|PUT|DELETE|HEAD
+ACTION Count and print HTTP methods
+
+TOKEN STATUS_CODE
+DESCRIPTION HTTP status codes
+PATTERN [1-5][0-9][0-9]
+ACTION Print status codes
+
+TOKEN USER_AGENT
+DESCRIPTION Browser user agents
+PATTERN Mozilla\/[0-9]\.[0-9]
+ACTION Count user agents
+
+TOKEN ERROR_LEVEL
+DESCRIPTION Log error levels
+PATTERN ERROR|WARN|INFO|DEBUG
+ACTION Count and print error levels

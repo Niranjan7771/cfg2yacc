@@ -1,0 +1,8 @@
+# Example STATUS_CODE tokens
+# Generated automatically for testing
+
+200
+404
+500
+301
+403

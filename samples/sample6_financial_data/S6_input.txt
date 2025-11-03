@@ -1,0 +1,53 @@
+Financial Transaction Report
+
+Account Summary:
+Primary Account: 1234-5678-9012
+Savings Account: 9876-5432-1098
+Credit Card: 4532 1234 5678 9012
+
+Recent Transactions:
+TXN123456 - Deposit $1,250.00 (2.5% interest)
+TXN123457 - Withdrawal $500.50 from 1234-5678-9012
+TXN123458 - Purchase $89.99 using 4532 1234 5678
+TXN123459 - Transfer $2,000.00 between accounts
+
+Stock Portfolio:
+AAPL - Current price $175.25 (up 3.2%)
+GOOGL - Current price $2,850.75 (down 1.8%)
+MSFT - Current price $415.50 (up 0.9%)
+TSLA - Current price $245.80 (up 5.7%)
+
+Investment Summary:
+Total Portfolio Value: $45,750.00
+Daily Change: +2.1%
+Monthly Return: +8.4%
+Annual Return: +12.7%
+
+Transaction History:
+TXN234567 - Stock purchase AAPL $5,250.00
+TXN234568 - Dividend payment $125.75 (1.2% yield)
+TXN234569 - Bond interest $75.50 from account 9876-5432-1098
+TXN234570 - Fee charge $15.00 (0.3% of transaction)
+
+Credit Card Statement:
+Card Number: 4532 1234 5678 9012
+Balance: $2,450.75
+Minimum Payment: $85.00 (3.5% of balance)
+Interest Rate: 18.9%
+
+Banking Fees:
+Monthly Maintenance: $12.00 (waived with $1,500.00 balance)
+ATM Fee: $3.50 per transaction
+Wire Transfer: $25.00 (1.0% of amount)
+Overdraft Fee: $35.00 per occurrence
+
+Investment Allocations:
+Stocks: 65.5% of portfolio
+Bonds: 25.2% of portfolio  
+Cash: 9.3% of portfolio
+Real Estate: 0.0% of portfolio
+
+Recent Alerts:
+Low balance warning: Account 1234-5678-9012 below $500.00
+High spending alert: Credit card usage above 80.5%
+Investment milestone: Portfolio reached $45,000.00 target

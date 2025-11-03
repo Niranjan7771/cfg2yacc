@@ -1,0 +1,9 @@
+# Example URGENCY_WORDS tokens
+# Generated automatically for testing
+
+urgent
+immediate
+now
+hurry
+quick
+fast

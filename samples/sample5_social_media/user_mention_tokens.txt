@@ -1,0 +1,7 @@
+# Example USER_MENTION tokens
+# Generated automatically for testing
+
+@user123
+@john_doe
+@tech_news
+@developer

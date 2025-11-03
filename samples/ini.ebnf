@@ -1,9 +1,0 @@
-# INI configuration file grammar with sections and key-value pairs
-
-config          ::= (section | entry)* ;
-
-section         ::= '[' IDENTIFIER ']' NEWLINE entry* ;
-entry           ::= IDENTIFIER '=' value NEWLINE ;
-value           ::= STRING | NUMBER | BOOLEAN ;
-
-BOOLEAN         ::= TRUE | FALSE ;

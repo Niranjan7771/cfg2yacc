@@ -1,0 +1,66 @@
+# Financial Data Analysis Language
+# Analyzes financial documents for currency, accounts, transactions, stocks, etc.
+
+%%LEX
+# Financial patterns
+CURRENCY_USD \$[0-9,]+\.?[0-9]*
+ACCOUNT_NUMBER [0-9]{4}-[0-9]{4}-[0-9]{4}
+TRANSACTION_ID TXN[0-9]{6,}
+CREDIT_CARD [0-9]{4}[ \t][0-9]{4}[ \t][0-9]{4}
+STOCK_SYMBOL [A-Z]{2,5}
+PERCENTAGE [0-9]+\.?[0-9]*%
+
+# General patterns
+WORD [a-zA-Z]+
+NUMBER [0-9]+
+DOLLAR \$
+DASH -
+DOT \.
+COMMA ,
+PERCENT %
+NEWLINE \n
+WHITESPACE [ \t\r]+
+
+%%YACC
+# Financial document
+financial_document -> transaction_list
+    { $$ = create_node("financial_document", 1, $1); }
+
+transaction_list -> transaction_item
+    { $$ = create_node("transaction_list", 1, $1); }
+    | transaction_list transaction_item
+    { $$ = create_node("transaction_list", 2, $1, $2); }
+
+# Transaction items (financial elements)
+transaction_item -> CURRENCY_USD
+    { $$ = create_node("currency_amount_detected", 1, $1); }
+    | ACCOUNT_NUMBER
+    { $$ = create_node("account_number_detected", 1, $1); }
+    | TRANSACTION_ID
+    { $$ = create_node("transaction_id_detected", 1, $1); }
+    | CREDIT_CARD
+    { $$ = create_node("credit_card_detected", 1, $1); }
+    | STOCK_SYMBOL
+    { $$ = create_node("stock_symbol_detected", 1, $1); }
+    | PERCENTAGE
+    { $$ = create_node("percentage_detected", 1, $1); }
+    | WORD
+    { $$ = create_node("word", 1, $1); }
+    | NUMBER
+    { $$ = create_node("number", 1, $1); }
+    | symbol
+    { $$ = $1; }
+    | NEWLINE
+    { $$ = create_leaf_node("newline", "\\n"); }
+
+# Symbols
+symbol -> DOLLAR
+    { $$ = $1; }
+    | DASH
+    { $$ = $1; }
+    | DOT
+    { $$ = $1; }
+    | COMMA
+    { $$ = $1; }
+    | PERCENT
+    { $$ = $1; }

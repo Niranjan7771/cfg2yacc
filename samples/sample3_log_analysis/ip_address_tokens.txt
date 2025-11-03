@@ -1,0 +1,8 @@
+# Example IP_ADDRESS tokens
+# Generated automatically for testing
+
+192.168.1.100
+10.0.0.1
+172.16.0.50
+8.8.8.8
+127.0.0.1
