@@ -1,12 +1,12 @@
-# ID Arithmetic Example
-# Tokens: ID (single letter), NUM (digits), operators (+, *, -)
-# Grammar: identifier can be NUM, or identifier op identifier
+# ID Arithmetic with Precedence
+# Demonstrates how to enforce operator precedence:
+# Multiplication (*) has higher precedence than addition (+) and subtraction (-)
 
 %%LEX
 # Single lowercase letter
 ID [a-z]
 
-# One or more digits
+# One or more digits  
 NUM [0-9]+
 
 # Operators
@@ -33,14 +33,25 @@ expr_list -> expression
 expression -> identifier NEWLINE
     { $$ = create_node("expression", 2, $1, $2); }
 
-# Identifier rules: can be NUM, or identifier op identifier
-identifier -> NUM
-    { $$ = create_node("identifier", 1, $1); }
-    | identifier PLUS identifier
-    { $$ = create_node("identifier", 3, $1, $2, $3); }
-    | identifier TIMES identifier
-    { $$ = create_node("identifier", 3, $1, $2, $3); }
-    | identifier MINUS identifier
-    { $$ = create_node("identifier", 3, $1, $2, $3); }
+# Multiplication (higher precedence)
+term -> term TIMES factor
+    { $$ = create_node("multiply", 3, $1, $2, $3); }
+    | factor
+    { $$ = $1; }
+
+
+# Addition and Subtraction (lower precedence)
+identifier -> identifier PLUS term
+    { $$ = create_node("add", 3, $1, $2, $3); }
+    | identifier MINUS term
+    { $$ = create_node("subtract", 3, $1, $2, $3); }
+    | term
+    { $$ = $1; }
+
+
+
+# Base cases: ID or NUM
+factor -> NUM
+    { $$ = create_node("num", 1, $1); }
     | ID
-    { $$ = create_node("identifier", 1, $1); }
+    { $$ = create_node("id", 1, $1); }
