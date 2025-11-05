@@ -16,6 +16,7 @@ y.tab.c
 y.tab.h
 lex.yy.c
 parser.output
+*_tokens.txt
 
 # Python cache
 __pycache__/

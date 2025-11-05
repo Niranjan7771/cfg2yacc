@@ -1,3 +1,0 @@
-@user123
-@john_doe
-@tech_news

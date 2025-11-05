@@ -5,7 +5,7 @@
 %%LEX
 # Numbers (integers only for simplicity)
 NUMBER [0-9]+
-
+=
 # Math operators
 PLUS \+
 MINUS -

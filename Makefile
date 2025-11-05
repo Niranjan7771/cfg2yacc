@@ -4,7 +4,7 @@ CFLAGS = -Wall -g
 PYTHON = python3
 GENERATOR_SCRIPT = generator.py
 VISUALIZER_SCRIPT = visualize_tree.py
-DEF_FILE = samples/sample5_social_media/S5_analyzer.def
+DEF_FILE = samples/sample3_log_analysis/S3_analyzer.def
 
 # Parse-tree library
 LIB_SRCS = ast.c
@@ -56,6 +56,7 @@ clean:
 	rm -f $(LEXER_SOURCE) $(PARSER_SOURCE)
 	rm -f $(LIB_OBJS)
 	rm -f $(TARGET)
+	find samples -name '*_tokens.txt' -delete
 	@echo "Clean complete."
 
 # Clean everything including backups
