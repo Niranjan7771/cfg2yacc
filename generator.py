@@ -1,102 +1,34 @@
 #!/usr/bin/env python3
-"""
-generator.py
----------------
-Entry-point for converting a `.def` analyzer description into a Flex (`lexer.l`) and
-Bison (`parser.y`) input files and (optionally) token example files. This script is
-used by the Makefile to produce the C sources that are compiled into the final
-`custom_compiler` binary.
+"""cfg2yacc generator module.
 
-High level responsibilities:
-- Parse the `.def` file format which contains two sections: `%%LEX` and `%%YACC`.
-- Produce `lexer.l` (Flex) from the lex rules in `%%LEX`.
-- Produce `parser.y` (Bison) from grammar rules in `%%YACC` and generate %token/%type
-    declarations.
-- Generate example token files for samples (historically via `TOKEN_TEMPLATES`,
-    optionally by scanning the sample input).
+This script transforms a ``.def`` grammar specification into the collection of
+generated artefacts the build expects:
 
-This file contains small helper classes `LexRule` and `GrammarRule` used by the
-generator. Each top-level function includes a short docstring describing its
-inputs/outputs and behaviour.
+* ``lexer.l`` – Flex rules derived from ``%%LEX``
+* ``parser.y`` – Bison grammar synthesised from ``%%YACC``
+* ``*_tokens.txt`` – token samples harvested from the analyzer's input file
+
+It is invoked from the ``Makefile`` as part of ``make all`` / ``make run`` and
+acts as the bridge between the high-level declarative grammar and the concrete
+Flex/Bison sources compiled into ``custom_compiler``.  Every public function
+carries a docstring so the file doubles as living documentation for the
+generation pipeline.
 """
 
 import sys
-import os
 import re
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
-# Token data templates - comprehensive examples for auto-generation
-# NOTE: Historically the repository supported two modes of token generation:
-# 1) Template-driven: write token example files from TOKEN_TEMPLATES (fast, static)
-# 2) Input-driven: scan the sample input file and extract tokens that match the
-#    lex regexes (dynamic, input-driven). The current TOKEN_TEMPLATES dictionary
-# supports mode (1). To switch to input-driven mode edit `generate_token_files`.
-TOKEN_TEMPLATES = {
-    'EMAIL': ['john.doe@example.com', 'alice@test.org', 'support@company.net'],
-    'EMAIL_ADDR': ['john.doe@company.com', 'support@bank.com', 'info@site.org'],
-    'PHONE_NUMBER': ['555-123-4567', '800-555-0199', '555-987-6543'],
-    'PHONE_FORMATTED': ['(555) 123-4567', '(800) 555-0199', '(212) 555-1234'],
-    'PHONE_SIMPLE': ['555-987-6543', '123 456 7890', '555.123.4567'],
-    'WEBSITE_URL': ['www.example.com', 'www.bank.com', 'www.store.org'],
-    'CURRENCY': ['$99.99', '$25.00', '$15.50', '$500.00'],
-    'CURRENCY_USD': ['$1,234.56', '$999.99', '$50.00'],
-    'DATE_FORMAT': ['12/15/2024', '01/01/2025', '03/14/2024'],
-    'DATE_MEDICAL': ['11/03/2025', '10/15/2024', '12/25/2024'],
-    'TIME_MEDICAL': ['09:30AM', '02:15PM', '11:45AM'],
-    'URGENT': ['URGENT', 'IMMEDIATE', 'ACT NOW', 'LIMITED TIME'],
-    'SPAM_WORDS': ['winner', 'free', 'prize', 'congratulations'],
-    'MONEY_TERMS': ['cash', 'money', 'profit', 'income'],
-    'URGENCY_WORDS': ['urgent', 'immediate', 'now', 'hurry'],
-    'SUSPICIOUS_LINK': ['bit.ly/xyz123', 'tinyurl.com/abc'],
-    'CAPS_WORD': ['WINNER', 'FREE', 'GUARANTEED'],
-    'FLOAT_NUMBER': ['3.14', '2.718', '1.23', '99.99'],
-    'NUMBER': ['123', '456', '789', '0', '999'],
-    'INTEGER': ['42', '100', '0', '9999'],
-    'TIMESTAMP': ['2024-11-03 14:23:45', '2024-11-03 09:15:30'],
-    'IP_ADDRESS': ['192.168.1.100', '10.0.0.1', '8.8.8.8'],
-    'HTTP_METHOD': ['GET', 'POST', 'PUT', 'DELETE'],
-    'STATUS_CODE': ['200', '404', '500', '301'],
-    'ERROR_LEVEL': ['ERROR', 'WARNING', 'INFO', 'DEBUG'],
-    'HASHTAG': ['#technology', '#ai', '#programming'],
-    'USER_MENTION': ['@user123', '@john_doe', '@tech_news'],
-    'EMOJI_FACE': ['😀', '😊', '🎉', '❤️'],
-    'LIKE_COUNT': ['1.5K likes', '234 likes', '10K likes'],
-    'SHARE_COUNT': ['500 shares', '1.2K shares', '50 shares'],
-    'ACCOUNT_NUMBER': ['ACC-123456789', 'ACC-987654321'],
-    'TRANSACTION_ID': ['TXN-ABC123XYZ', 'TXN-DEF456UVW'],
-    'STOCK_SYMBOL': ['AAPL', 'GOOGL', 'MSFT', 'TSLA'],
-    'FUNCTION_DEF': ['def calculate():', 'function getData() {'],
-    'VARIABLE_ASSIGN': ['x = 10', 'result = func()', 'data = []'],
-    'STRING_LITERAL': ['"Hello, World!"', "'test string'"],
-    # Medical tokens
-    'PATIENT_ID': ['MR234567', 'AB123456', 'CD789012', 'EF456789'],
-    'BLOOD_TYPE': ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
-    'BLOOD_PRESSURE': ['120/80', '130/85', '140/90', '110/70'],
-    'TEMPERATURE': ['98.6F', '99.2F', '97.8F', '37.0C'],
-    'HEART_RATE': ['72bpm', '78bpm', '85bpm', '95bpm'],
-    'WEIGHT': ['75kg', '62kg', '82kg', '165lbs'],
-    'HEIGHT': ['1.75m', '1.65m', '180cm', '175cm'],
-    'GLUCOSE_LEVEL': ['95mg/dL', '110mg/dL', '88mg/dL'],
-    'PRESCRIPTION': ['Rx12345678', 'Rx23456789', 'Rx34567890'],
-    'DIAGNOSIS_CODE': ['ICD10-I21', 'ICD10-E11', 'ICD10-G40'],
-    'DOCTOR_ID': ['Dr.Smith', 'Dr.Johnson', 'Dr.Williams'],
-    'TEST_RESULT': ['Positive', 'Negative', 'Pending', 'Abnormal', 'Normal'],
-    'SEVERITY': ['Critical', 'Severe', 'Moderate', 'Mild'],
-    'DEPARTMENT': ['Cardiology', 'Neurology', 'Emergency', 'ICU'],
-    'GENDER': ['Male', 'Female', 'Other'],
-    'AGE_UNIT': ['years', 'yrs'],
-    'DOSAGE_FORM': ['tablet', 'tablets', 'capsule', 'capsules', 'pill', 'pills', 'dose', 'doses', 'ml', 'mg'],
-}
 
 class LexRule:
     def __init__(self, token_name: str, regex: str):
         self.token_name = token_name
         self.regex = regex
 
-    # LexRule represents a single lexer specification line from the %%LEX
-    # section. `token_name` is the symbolic token name and `regex` is the
-    # Flex-style pattern string that will be written verbatim into `lexer.l`.
+    # ``LexRule`` mirrors one line from the ``%%LEX`` block. ``token_name`` is
+    # the symbolic token the parser sees while ``regex`` is the original
+    # Flex-compatible pattern copied verbatim into ``lexer.l``.
 
 class GrammarRule:
     def __init__(self, lhs: str, rhs: str, action: str):
@@ -104,22 +36,19 @@ class GrammarRule:
         self.rhs = rhs
         self.action = action
 
-    # GrammarRule holds one production rule extracted from the %%YACC
-    # section. `lhs` is the non-terminal on the left hand side, `rhs` is the
-    # textual right-hand side (as written in the .def) and `action` contains
-    # any `{ ... }` semantic action code the user provided.
+    # ``GrammarRule`` represents a single production taken from ``%%YACC``. The
+    # left-hand side non-terminal is stored in ``lhs``, the textual production
+    # in ``rhs`` and any associated semantic action (from ``{ ... }``) in
+    # ``action``.
 
 def parse_def_file(filename: str) -> Tuple[List[LexRule], List[GrammarRule]]:
-    """
-    Read and parse a `.def` file.
+    """Parse a ``.def`` analyzer file into lexer and grammar structures.
 
-    Returns two lists:
-    - list of `LexRule` objects found in the `%%LEX` section
-    - list of `GrammarRule` objects found in the `%%YACC` section
-
-    The parser is intentionally simple: it expects one `%%LEX` and one
-    `%%YACC` marker and parses lines pragmatically. Complex, nested or
-    multi-line actions are handled in a best-effort manner.
+    Expects exactly one ``%%LEX`` followed by one ``%%YACC`` section.  The
+    approach is intentionally pragmatic: it scans lines, extracts token /
+    regex pairs, and records grammar productions including simple semantic
+    actions.  Extremely elaborate multi-line actions may require manual touch
+    ups, but typical samples are supported.
     """
 
     with open(filename, 'r') as f:
@@ -201,15 +130,48 @@ def parse_def_file(filename: str) -> Tuple[List[LexRule], List[GrammarRule]]:
     
     return lex_rules, grammar_rules
 
-def generate_lexer(lex_rules: List[LexRule], output_file: str):
-    """
-    Emit a Flex `lexer.l` file from parsed `lex_rules`.
 
-    For each `LexRule` we write a Flex pattern line. For regular tokens we
-    produce code that creates an AST leaf node (`yylval.node = create_leaf_node(...)`)
-    and returns the token symbol to the parser. `WHITESPACE` is treated as a
-    skip rule to avoid creating extraneous nodes for whitespace.
-    """
+def flex_regex_to_python(pattern: str) -> str:
+    """Convert a Flex regex into a Python-compatible pattern string."""
+
+    converted = pattern.strip()
+    # Flex uses escaped forward slashes for literal '/', translate to Python style.
+    converted = converted.replace('\/', '/')
+    converted = converted.replace('\\"', '"')
+
+    # Surround bare patterns with a non-capturing group to avoid precedence issues
+    if converted and not converted.startswith('('):
+        converted = f'(?:{converted})'
+
+    return converted
+
+
+def find_input_file(def_path: Path) -> Optional[Path]:
+    """Infer the most appropriate sample input file for an analyzer."""
+
+    # Common convention: `S1_analyzer.def` -> `S1_input.txt`
+    base_name = def_path.stem
+    candidates = []
+
+    if base_name.endswith('_analyzer'):
+        candidates.append(def_path.with_name(base_name.replace('_analyzer', '_input') + '.txt'))
+
+    # Same-name .txt fallback (e.g., my_grammar.def -> my_grammar.txt)
+    candidates.append(def_path.with_suffix('.txt'))
+
+    # Search sibling files that contain 'input' in their stem for best effort
+    for candidate in def_path.parent.glob('*'):
+        if candidate.is_file() and candidate.suffix.lower() == '.txt' and 'input' in candidate.stem.lower():
+            candidates.append(candidate)
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    return None
+
+def generate_lexer(lex_rules: List[LexRule], output_file: str):
+    """Emit a Flex ``lexer.l`` implementation from parsed ``LexRule`` entries."""
 
     with open(output_file, 'w') as f:
         # C prologue required by flex/bison integration
@@ -222,8 +184,8 @@ def generate_lexer(lex_rules: List[LexRule], output_file: str):
         f.write('%}\n\n')
         f.write('%%\n\n')
 
-        # Emit each lexer rule. The `.regex` is written verbatim: the .def
-        # author is responsible for Flex-compatible patterns.
+        # Emit each lexer rule. The ``.regex`` is written verbatim; the .def
+        # author is responsible for providing Flex-compatible patterns.
         for rule in lex_rules:
             if rule.token_name == 'WHITESPACE':
                 # Skip whitespace tokens entirely (no AST node created)
@@ -235,25 +197,13 @@ def generate_lexer(lex_rules: List[LexRule], output_file: str):
                 f.write('return ' + rule.token_name + '; ')
                 f.write('}\n')
 
-        # A fallback rule for unexpected input
+        # Fallback rule for unexpected input characters
         f.write('\n.    { fprintf(stderr, "Unexpected character: %s\\n", yytext); }\n')
         f.write('%%\n\n')
         f.write('int yywrap() { return 1; }\n')
 
 def generate_parser(lex_rules: List[LexRule], grammar_rules: List[GrammarRule], output_file: str):
-    """
-    Emit a Bison `parser.y` file using the provided `lex_rules` and
-    `grammar_rules`.
-
-    The function performs these steps:
-    - Writes the C prologue required by Bison and declares `Node *` union.
-    - Declares `%token` entries for each lexer token (attaching the `<node>`
-      semantic type) and `%type` for nonterminals.
-    - Emits the grammar productions verbatim and attaches any user-provided
-      action blocks. The first production's action is recorded in `ast_root`.
-    - Produces a simple `main()` that opens an optional input file, runs the
-      parser, and prints the resulting AST with `print_ast()`.
-    """
+    """Produce a Bison ``parser.y`` using the collected rule definitions."""
 
     with open(output_file, 'w') as f:
         # Bison C prologue: includes and forward declarations
@@ -272,7 +222,7 @@ def generate_parser(lex_rules: List[LexRule], grammar_rules: List[GrammarRule], 
         f.write('    Node *node;\n')
         f.write('}\n\n')
 
-        # Collect token names from lex rules (skip WHITESPACE)
+        # Gather token names from lex rules (skip WHITESPACE)
         tokens = set()
         for rule in lex_rules:
             if rule.token_name != 'WHITESPACE':
@@ -298,8 +248,8 @@ def generate_parser(lex_rules: List[LexRule], grammar_rules: List[GrammarRule], 
 
         f.write('%%\n\n')
 
-        # Emit grammar rules. The generator writes rules grouped by LHS
-        # using '|' for alternatives and preserves any user-provided actions.
+        # Emit grammar rules grouped by LHS, using '|' for alternatives and
+        # preserving any user-provided actions.
         current_lhs = None
         is_first_rule = True
         for rule in grammar_rules:
@@ -319,7 +269,7 @@ def generate_parser(lex_rules: List[LexRule], grammar_rules: List[GrammarRule], 
             f.write(rule.rhs if rule.rhs else '/* empty */')
 
             # Attach action code if present. For the very first grammar rule
-            # record the root AST node in `ast_root`.
+            # record the root AST node in ``ast_root``.
             if rule.action:
                 f.write('\n        { ' + rule.action)
                 if is_first_rule:
@@ -358,15 +308,48 @@ def generate_parser(lex_rules: List[LexRule], grammar_rules: List[GrammarRule], 
         f.write('}\n')
 
 def generate_token_files(lex_rules: List[LexRule], def_file: str):
-    """Generate token example files for the analyzer"""
-    # Get the directory containing the .def file
+    """
+    Generate token example files by scanning the analyzer's sample input.
+
+     Steps performed:
+     1. Locate the input file associated with the `.def` analyzer.
+     2. Remove any previously generated `*_tokens.txt` files so that output is
+         always derived from the latest input.
+     3. For each lex rule (excluding punctuation/whitespace tokens), compile a
+         Python regex equivalent of the Flex pattern and find unique matches in the
+         input text.
+     4. Write the matches to `{token_name}_tokens.txt` in the analyzer directory.
+    """
+
     def_path = Path(def_file)
     output_dir = def_path.parent
-    
-    # Skip tokens that are typically punctuation or whitespace
+
+    input_file = find_input_file(def_path)
+    if input_file is None or not input_file.exists():
+        print(f'No input file found for {def_path.name}; skipping token generation.')
+        return
+
+    try:
+        text = input_file.read_text()
+    except OSError as exc:
+        print(f'Could not read input file {input_file}: {exc}')
+        return
+
+    # Remove previously generated token files in this analyzer directory
+    removed = 0
+    for token_file in output_dir.glob('*_tokens.txt'):
+        try:
+            token_file.unlink()
+            removed += 1
+        except OSError as exc:
+            print(f'Warning: could not remove {token_file.name}: {exc}')
+
+    if removed:
+        print(f'Removed {removed} old token file(s) from {output_dir}')
+
     skip_tokens = {
-        'WHITESPACE', 'NEWLINE', 'SPACE', 'TAB', 
-        'COMMA', 'DOT', 'COLON', 'SEMICOLON', 
+        'WHITESPACE', 'NEWLINE', 'SPACE', 'TAB',
+        'COMMA', 'DOT', 'COLON', 'SEMICOLON',
         'LPAREN', 'RPAREN', 'LBRACE', 'RBRACE',
         'LBRACKET', 'RBRACKET', 'QUOTE', 'DQUOTE',
         'PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'STAR',
@@ -376,35 +359,55 @@ def generate_token_files(lex_rules: List[LexRule], def_file: str):
         'TILDE', 'BACKTICK', 'UNDERSCORE',
         'LETTER', 'DIGIT', 'WORD', 'CHAR'
     }
-    
+
+    max_samples = 50
     files_created = 0
-    
+
     for rule in lex_rules:
         token_name = rule.token_name
-        
-        # Skip common punctuation/whitespace tokens
+
         if token_name.upper() in skip_tokens:
             continue
-        
-        # Check if we have a template for this token
-        if token_name in TOKEN_TEMPLATES or token_name.upper() in TOKEN_TEMPLATES:
-            data = TOKEN_TEMPLATES.get(token_name) or TOKEN_TEMPLATES.get(token_name.upper())
-        else:
-            # No template available
+
+        pattern = flex_regex_to_python(rule.regex)
+        try:
+            regex = re.compile(pattern, re.MULTILINE)
+        except re.error as exc:
+            print(f'Warning: could not compile regex for token {token_name}: {exc}')
             continue
-        
-        # Create token file
+
+        matches = []
+        seen = set()
+        for match in regex.finditer(text):
+            value = match.group(0)
+            if not value:
+                continue
+            if value in seen:
+                continue
+            matches.append(value)
+            seen.add(value)
+            if len(matches) >= max_samples:
+                break
+
+        if not matches:
+            continue
+
         filename = f"{token_name.lower()}_tokens.txt"
         filepath = output_dir / filename
-        
-        with open(filepath, 'w') as f:
-            for item in data:
-                f.write(f"{item}\n")
-        
+        try:
+            with open(filepath, 'w') as f:
+                for value in matches:
+                    f.write(f"{value}\n")
+        except OSError as exc:
+            print(f'Warning: could not write {filepath.name}: {exc}')
+            continue
+
         files_created += 1
-    
+
     if files_created > 0:
-        print(f'Generated {files_created} token example files in {output_dir}')
+        print(f'Generated {files_created} token example file(s) in {output_dir} from {input_file.name}')
+    else:
+        print(f'No token data generated from {input_file.name}')
 
 def main():
     if len(sys.argv) != 2:
