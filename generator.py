@@ -1,4 +1,25 @@
 #!/usr/bin/env python3
+"""
+generator.py
+---------------
+Entry-point for converting a `.def` analyzer description into a Flex (`lexer.l`) and
+Bison (`parser.y`) input files and (optionally) token example files. This script is
+used by the Makefile to produce the C sources that are compiled into the final
+`custom_compiler` binary.
+
+High level responsibilities:
+- Parse the `.def` file format which contains two sections: `%%LEX` and `%%YACC`.
+- Produce `lexer.l` (Flex) from the lex rules in `%%LEX`.
+- Produce `parser.y` (Bison) from grammar rules in `%%YACC` and generate %token/%type
+    declarations.
+- Generate example token files for samples (historically via `TOKEN_TEMPLATES`,
+    optionally by scanning the sample input).
+
+This file contains small helper classes `LexRule` and `GrammarRule` used by the
+generator. Each top-level function includes a short docstring describing its
+inputs/outputs and behaviour.
+"""
+
 import sys
 import os
 import re
@@ -6,6 +27,11 @@ from pathlib import Path
 from typing import List, Tuple
 
 # Token data templates - comprehensive examples for auto-generation
+# NOTE: Historically the repository supported two modes of token generation:
+# 1) Template-driven: write token example files from TOKEN_TEMPLATES (fast, static)
+# 2) Input-driven: scan the sample input file and extract tokens that match the
+#    lex regexes (dynamic, input-driven). The current TOKEN_TEMPLATES dictionary
+# supports mode (1). To switch to input-driven mode edit `generate_token_files`.
 TOKEN_TEMPLATES = {
     'EMAIL': ['john.doe@example.com', 'alice@test.org', 'support@company.net'],
     'EMAIL_ADDR': ['john.doe@company.com', 'support@bank.com', 'info@site.org'],
@@ -68,20 +94,44 @@ class LexRule:
         self.token_name = token_name
         self.regex = regex
 
+    # LexRule represents a single lexer specification line from the %%LEX
+    # section. `token_name` is the symbolic token name and `regex` is the
+    # Flex-style pattern string that will be written verbatim into `lexer.l`.
+
 class GrammarRule:
     def __init__(self, lhs: str, rhs: str, action: str):
         self.lhs = lhs
         self.rhs = rhs
         self.action = action
 
+    # GrammarRule holds one production rule extracted from the %%YACC
+    # section. `lhs` is the non-terminal on the left hand side, `rhs` is the
+    # textual right-hand side (as written in the .def) and `action` contains
+    # any `{ ... }` semantic action code the user provided.
+
 def parse_def_file(filename: str) -> Tuple[List[LexRule], List[GrammarRule]]:
+    """
+    Read and parse a `.def` file.
+
+    Returns two lists:
+    - list of `LexRule` objects found in the `%%LEX` section
+    - list of `GrammarRule` objects found in the `%%YACC` section
+
+    The parser is intentionally simple: it expects one `%%LEX` and one
+    `%%YACC` marker and parses lines pragmatically. Complex, nested or
+    multi-line actions are handled in a best-effort manner.
+    """
+
     with open(filename, 'r') as f:
         content = f.read()
-    
+
+    # Basic validation that the required sections exist
     if '%%LEX' not in content or '%%YACC' not in content:
         print(f'Error: {filename} must contain both %%LEX and %%YACC sections')
         sys.exit(1)
-    
+
+    # Split the file into lex and yacc sections. This assumes a single
+    # `%%LEX` followed by a single `%%YACC` in that order.
     parts = content.split('%%LEX')
     after_lex = parts[1].split('%%YACC')
     lex_section = after_lex[0]
@@ -152,7 +202,17 @@ def parse_def_file(filename: str) -> Tuple[List[LexRule], List[GrammarRule]]:
     return lex_rules, grammar_rules
 
 def generate_lexer(lex_rules: List[LexRule], output_file: str):
+    """
+    Emit a Flex `lexer.l` file from parsed `lex_rules`.
+
+    For each `LexRule` we write a Flex pattern line. For regular tokens we
+    produce code that creates an AST leaf node (`yylval.node = create_leaf_node(...)`)
+    and returns the token symbol to the parser. `WHITESPACE` is treated as a
+    skip rule to avoid creating extraneous nodes for whitespace.
+    """
+
     with open(output_file, 'w') as f:
+        # C prologue required by flex/bison integration
         f.write('%{\n')
         f.write('#include <stdio.h>\n')
         f.write('#include <stdlib.h>\n')
@@ -161,22 +221,42 @@ def generate_lexer(lex_rules: List[LexRule], output_file: str):
         f.write('#include "y.tab.h"\n')
         f.write('%}\n\n')
         f.write('%%\n\n')
-        
+
+        # Emit each lexer rule. The `.regex` is written verbatim: the .def
+        # author is responsible for Flex-compatible patterns.
         for rule in lex_rules:
             if rule.token_name == 'WHITESPACE':
+                # Skip whitespace tokens entirely (no AST node created)
                 f.write(rule.regex + '    { /* skip whitespace */ }\n')
             else:
+                # For named tokens, create a leaf node and return the token
                 f.write(rule.regex + '    { ')
                 f.write('yylval.node = create_leaf_node("' + rule.token_name + '", yytext); ')
                 f.write('return ' + rule.token_name + '; ')
                 f.write('}\n')
-        
+
+        # A fallback rule for unexpected input
         f.write('\n.    { fprintf(stderr, "Unexpected character: %s\\n", yytext); }\n')
         f.write('%%\n\n')
         f.write('int yywrap() { return 1; }\n')
 
 def generate_parser(lex_rules: List[LexRule], grammar_rules: List[GrammarRule], output_file: str):
+    """
+    Emit a Bison `parser.y` file using the provided `lex_rules` and
+    `grammar_rules`.
+
+    The function performs these steps:
+    - Writes the C prologue required by Bison and declares `Node *` union.
+    - Declares `%token` entries for each lexer token (attaching the `<node>`
+      semantic type) and `%type` for nonterminals.
+    - Emits the grammar productions verbatim and attaches any user-provided
+      action blocks. The first production's action is recorded in `ast_root`.
+    - Produces a simple `main()` that opens an optional input file, runs the
+      parser, and prints the resulting AST with `print_ast()`.
+    """
+
     with open(output_file, 'w') as f:
+        # Bison C prologue: includes and forward declarations
         f.write('%{\n')
         f.write('#include <stdio.h>\n')
         f.write('#include <stdlib.h>\n')
@@ -191,29 +271,35 @@ def generate_parser(lex_rules: List[LexRule], grammar_rules: List[GrammarRule], 
         f.write('%union {\n')
         f.write('    Node *node;\n')
         f.write('}\n\n')
-        
+
+        # Collect token names from lex rules (skip WHITESPACE)
         tokens = set()
         for rule in lex_rules:
             if rule.token_name != 'WHITESPACE':
                 tokens.add(rule.token_name)
-        
+
+        # Emit %token declarations with the Node* semantic type
         for token in sorted(tokens):
             f.write('%token <node> ' + token + '\n')
         f.write('\n')
-        
+
+        # Declare %type for each nonterminal
         nonterminals = set()
         for rule in grammar_rules:
             nonterminals.add(rule.lhs)
-        
+
         for nt in sorted(nonterminals):
             f.write('%type <node> ' + nt + '\n')
         f.write('\n')
-        
+
+        # Set the start symbol to the first declared LHS
         if grammar_rules:
             f.write('%start ' + grammar_rules[0].lhs + '\n\n')
-        
+
         f.write('%%\n\n')
-        
+
+        # Emit grammar rules. The generator writes rules grouped by LHS
+        # using '|' for alternatives and preserves any user-provided actions.
         current_lhs = None
         is_first_rule = True
         for rule in grammar_rules:
@@ -226,12 +312,14 @@ def generate_parser(lex_rules: List[LexRule], grammar_rules: List[GrammarRule], 
             else:
                 f.write('    | ')
                 first = False
-            
+
             if first:
                 f.write('    ')
-            
+
             f.write(rule.rhs if rule.rhs else '/* empty */')
-            
+
+            # Attach action code if present. For the very first grammar rule
+            # record the root AST node in `ast_root`.
             if rule.action:
                 f.write('\n        { ' + rule.action)
                 if is_first_rule:
@@ -239,13 +327,14 @@ def generate_parser(lex_rules: List[LexRule], grammar_rules: List[GrammarRule], 
                 f.write(' }')
             elif is_first_rule:
                 f.write('\n        { ast_root = $$; }')
-            
+
             f.write('\n')
             is_first_rule = False
-        
+
         if current_lhs is not None:
             f.write('    ;\n\n')
-        
+
+        # Epilogue: error handler and a small main() that runs the parser
         f.write('%%\n\n')
         f.write('void yyerror(const char *s) {\n')
         f.write('    fprintf(stderr, "Parse error: %s\\n", s);\n')

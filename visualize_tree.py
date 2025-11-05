@@ -1,12 +1,24 @@
 #!/usr/bin/env python3
 """
-Parse Tree Visualizer
-Reads parse tree output from custom_compiler and displays it in a clean, colorful format
+visualize_tree.py
+------------------
+Command-line parse-tree visualizer used by `make run`.
+
+This script reads parse-tree textual output produced by the compiler
+executable (it looks for the marker `=== Parse Tree ===` by default) and
+renders a colorized, human-readable representation in the terminal. It
+supports three styles (fancy, simple, compact) and a statistics mode.
+
+Important functions:
+- `parse_tree_output` - converts indented text lines into internal nodes
+- `visualize_tree_*` - the presentation functions for different styles
+- `show_statistics` - computes and prints tree statistics
 """
 
 import sys
 import re
 from typing import List, Tuple, Optional
+
 
 # ANSI color codes
 class Colors:
@@ -45,7 +57,13 @@ class TreeNode:
         return self.node_type
 
 def parse_tree_output(lines: List[str]) -> List[TreeNode]:
-    """Parse the parse tree output into structured nodes"""
+    """Parse a list of lines into TreeNode objects.
+
+    Input format expected is the same as `print_ast()` output from `ast.c`:
+    each line is either `Nonterminal` or `TOKEN: value` and indentation (spaces)
+    denotes tree nesting. This function is intentionally tolerant of small
+    formatting differences but assumes a consistent indent step.
+    """
     nodes = []
     
     for line in lines:
@@ -68,13 +86,21 @@ def parse_tree_output(lines: List[str]) -> List[TreeNode]:
     return nodes
 
 def get_node_color(node: TreeNode) -> str:
-    """Determine color based on node type and content"""
+    """Return an ANSI color code string for a given node.
+
+    The decision is based on heuristics:
+    - If the node type mentions `email`, `phone`, `url`, or `currency` we use
+      specialized colors.
+    - If node has a `.value` it is treated as a terminal/token.
+    - Otherwise it's considered a non-terminal (grammar rule).
+    """
+
     node_type_lower = node.node_type.lower()
-    
+
     # Special detected patterns
     if 'detected' in node_type_lower or 'found' in node_type_lower:
         return Colors.DETECTED
-    
+
     # Pattern-specific colors
     if 'email' in node_type_lower:
         return Colors.EMAIL
@@ -84,7 +110,7 @@ def get_node_color(node: TreeNode) -> str:
         return Colors.URL
     elif 'currency' in node_type_lower or 'dollar' in node_type_lower:
         return Colors.CURRENCY
-    
+
     # Terminal vs Non-terminal
     if node.value:
         # Tokens (terminals)

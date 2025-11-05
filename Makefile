@@ -1,4 +1,15 @@
 # Makefile for Python-based Compiler-Generator System
+#
+# This Makefile automates the typical workflow for the project:
+# - generate `lexer.l` and `parser.y` from a `.def` analyzer using `generator.py`
+# - run `flex` and `bison` to produce C sources
+# - compile `ast.c` and link everything into the `custom_compiler` executable
+# - provide convenience targets to run the analyzer and visualize parse trees
+#
+# Key targets:
+#  - all (default): build `custom_compiler`
+#  - run: build and execute the selected analyzer, piping output to the visualizer
+#  - clean: delete generated sources, binaries and generated token files
 CC = gcc
 CFLAGS = -Wall -g
 PYTHON = python3

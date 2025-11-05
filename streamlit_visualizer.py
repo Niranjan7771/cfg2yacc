@@ -1,7 +1,22 @@
 #!/usr/bin/env python3
 """
-Streamlit Parse Tree Visualizer
-Interactive web UI for visualizing parse trees from custom_compiler
+streamlit_visualizer.py
+------------------------
+
+Interactive Streamlit application that provides a web-based interface for
+visualizing parse trees produced by the `custom_compiler` executable. The app
+lets users select a `.def` analyzer, build it (via `make`), run it on sample or
+custom input, then view the resulting parse tree as an interactive Graphviz
+diagram or as formatted text. This file contains helper functions to discover
+analyzers, build and run the compiler, and convert the textual parse tree into
+structures suitable for display.
+
+Key functions:
+- `get_available_analyzers()` - enumerates .def files in the repo and samples
+- `build_compiler(def_file)` - runs `make` to regenerate the compiler for a
+    specific analyzer
+- `run_compiler(input_file)` - runs `./custom_compiler` and captures output
+- `create_graphviz_tree(nodes)` - converts parsed nodes into a Graphviz Digraph
 """
 
 import streamlit as st

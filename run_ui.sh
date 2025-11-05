@@ -1,11 +1,16 @@
 #!/bin/bash
-# Quick launcher for Streamlit UI
+# run_ui.sh
+# ---------
+# Small convenience script to launch the Streamlit parse tree visualizer.
+# It performs a couple of checks (ensure streamlit is installed) and then
+# runs `streamlit run streamlit_visualizer.py`.
 
-# Add ~/.local/bin to PATH if it exists
+# Add ~/.local/bin to PATH if it exists (common location for `pip --user` installs)
 if [ -d "$HOME/.local/bin" ]; then
     export PATH="$HOME/.local/bin:$PATH"
 fi
 
+# Check for streamlit
 if ! command -v streamlit &> /dev/null; then
     echo "❌ Streamlit not installed!"
     echo ""
@@ -25,4 +30,5 @@ echo ""
 echo "Press Ctrl+C to stop the server."
 echo ""
 
+# Launch Streamlit app from the repository root
 streamlit run streamlit_visualizer.py
